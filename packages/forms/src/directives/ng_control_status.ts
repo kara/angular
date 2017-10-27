@@ -57,14 +57,29 @@ export class NgControlStatus extends AbstractControlStatus {
 }
 
 /**
- * Directive automatically applied to Angular form groups that sets CSS classes
+ * Directive automatically applied to Angular reactive form groups that sets CSS classes
  * based on control status (valid/invalid/dirty/etc).
  *
  * @stable
  */
 @Directive({
   selector:
-      '[formGroupName],[formArrayName],[ngModelGroup],[formGroup],form:not([ngNoForm]),[ngForm]',
+    '[formGroupName],[formArrayName],[formGroup]',
+  host: ngControlStatusHost
+})
+export class NgControlStatusGroupReactive extends AbstractControlStatus {
+  constructor(@Self() cd: ControlContainer) { super(cd); }
+}
+
+/**
+ * Directive automatically applied to Angular template-driven form groups that sets CSS classes
+ * based on control status (valid/invalid/dirty/etc).
+ *
+ * @stable
+ */
+@Directive({
+  selector:
+      '[ngModelGroup],form:not([ngNoForm]),[ngForm]',
   host: ngControlStatusHost
 })
 export class NgControlStatusGroup extends AbstractControlStatus {

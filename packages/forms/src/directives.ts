@@ -10,7 +10,7 @@ import {NgModule, Type} from '@angular/core';
 
 import {CheckboxControlValueAccessor} from './directives/checkbox_value_accessor';
 import {DefaultValueAccessor} from './directives/default_value_accessor';
-import {NgControlStatus, NgControlStatusGroup} from './directives/ng_control_status';
+import {NgControlStatus, NgControlStatusGroup, NgControlStatusGroupReactive} from './directives/ng_control_status';
 import {NgForm} from './directives/ng_form';
 import {NgModel} from './directives/ng_model';
 import {NgModelGroup} from './directives/ng_model_group';
@@ -30,7 +30,7 @@ export {CheckboxControlValueAccessor} from './directives/checkbox_value_accessor
 export {ControlValueAccessor} from './directives/control_value_accessor';
 export {DefaultValueAccessor} from './directives/default_value_accessor';
 export {NgControl} from './directives/ng_control';
-export {NgControlStatus, NgControlStatusGroup} from './directives/ng_control_status';
+export {NgControlStatus, NgControlStatusGroup, NgControlStatusGroupReactive} from './directives/ng_control_status';
 export {NgForm} from './directives/ng_form';
 export {NgModel} from './directives/ng_model';
 export {NgModelGroup} from './directives/ng_model_group';
@@ -56,7 +56,6 @@ export const SHARED_FORM_DIRECTIVES: Type<any>[] = [
   SelectMultipleControlValueAccessor,
   RadioControlValueAccessor,
   NgControlStatus,
-  NgControlStatusGroup,
   RequiredValidator,
   MinLengthValidator,
   MaxLengthValidator,
@@ -65,10 +64,10 @@ export const SHARED_FORM_DIRECTIVES: Type<any>[] = [
   EmailValidator,
 ];
 
-export const TEMPLATE_DRIVEN_DIRECTIVES: Type<any>[] = [NgModel, NgModelGroup, NgForm];
+export const TEMPLATE_DRIVEN_DIRECTIVES: Type<any>[] = [NgModel, NgModelGroup, NgForm, NgControlStatusGroup];
 
 export const REACTIVE_DRIVEN_DIRECTIVES: Type<any>[] =
-    [FormControlDirective, FormGroupDirective, FormControlName, FormGroupName, FormArrayName];
+    [FormControlDirective, FormGroupDirective, FormControlName, FormGroupName, FormArrayName, NgControlStatusGroupReactive];
 
 /**
  * Internal module used for sharing directives between FormsModule and ReactiveFormsModule

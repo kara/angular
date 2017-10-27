@@ -1835,6 +1835,14 @@ export function main() {
 
     describe('errors', () => {
 
+      it('should not throw with an empty form tag', () => {
+        TestBed.configureTestingModule(
+          {declarations: [JustForm], imports: [ReactiveFormsModule]});
+        const fixture = TestBed.createComponent(JustForm);
+
+        expect(() => fixture.detectChanges()).not.toThrow();
+      });
+
       it('should throw if a form isn\'t passed into formGroup', () => {
         const fixture = initTest(FormGroupComp);
 
@@ -2304,3 +2312,9 @@ class FormControlCheckboxRequiredValidator {
 class UniqLoginWrapper {
   form: FormGroup;
 }
+
+@Component({
+  selector: 'just-form-tag',
+  template: `<form></form>`
+})
+class JustForm {}
