@@ -544,6 +544,7 @@ export function elementStart(
       assertEqual(
           currentView.bindingStartIndex, -1, 'elements should be created before any bindings');
 
+  ngDevMode && ngDevMode.rendererCreateElement++;
   const native: RElement = renderer.createElement(name);
   const node: LElementNode = createLNode(index, LNodeType.Element, native !, null);
 
@@ -558,6 +559,7 @@ function createDirectivesAndLocals(
     localRefs: string[] | null | undefined, containerData: TView[] | null) {
   const node = previousOrParentNode;
   if (firstTemplatePass) {
+    ngDevMode && ngDevMode.firstTemplatePass++;
     ngDevMode && assertDataInRange(index - 1);
     node.tNode = tData[index] = createTNode(name, attrs || null, containerData);
     cacheMatchingDirectivesForNode(node.tNode, currentView.tView, localRefs || null);
@@ -734,6 +736,7 @@ function getOrCreateTView(
 /** Creates a TView instance */
 export function createTView(
     defs: DirectiveDefListOrFactory | null, pipes: PipeDefListOrFactory | null): TView {
+  ngDevMode && ngDevMode.tView++;
   return {
     data: [],
     directives: null,
@@ -762,6 +765,7 @@ function setUpAttributes(native: RElement, attrs: string[]): void {
     const attrName = attrs[i];
     if (attrName !== NG_PROJECT_AS_ATTR_NAME) {
       const attrVal = attrs[i + 1];
+      ngDevMode && ngDevMode.rendererSetAttribute++;
       isProc ? (renderer as ProceduralRenderer3).setAttribute(native, attrName, attrVal) :
                native.setAttribute(attrName, attrVal);
     }
@@ -845,6 +849,7 @@ export function listener(
   // In order to match current behavior, native DOM event listeners must be added for all
   // events (including outputs).
   const cleanupFns = cleanup || (cleanup = currentView.cleanup = []);
+  ngDevMode && ngDevMode.rendererAddEventListener++;
   if (isProceduralRenderer(renderer)) {
     const wrappedListener = wrapListenerWithDirtyLogic(currentView, listenerFn);
     const cleanupFn = renderer.listen(native, eventName, wrappedListener);
@@ -909,9 +914,11 @@ export function elementAttribute(
   if (value !== NO_CHANGE) {
     const element: LElementNode = data[index];
     if (value == null) {
+      ngDevMode && ngDevMode.rendererRemoveAttribute++;
       isProceduralRenderer(renderer) ? renderer.removeAttribute(element.native, name) :
                                        element.native.removeAttribute(name);
     } else {
+      ngDevMode && ngDevMode.rendererSetAttribute++;
       const strValue = sanitizer == null ? stringify(value) : sanitizer(value);
       isProceduralRenderer(renderer) ? renderer.setAttribute(element.native, name, strValue) :
                                        element.native.setAttribute(name, strValue);
@@ -955,6 +962,7 @@ export function elementProperty<T>(
     // is risky, so sanitization can be done without further checks.
     value = sanitizer != null ? (sanitizer(value) as any) : value;
     const native = node.native;
+    ngDevMode && ngDevMode.rendererSetProperty++;
     isProceduralRenderer(renderer) ? renderer.setProperty(native, propName, value) :
                                      (native.setProperty ? native.setProperty(propName, value) :
                                                            (native as any)[propName] = value);
@@ -972,6 +980,7 @@ export function elementProperty<T>(
  */
 function createTNode(
     tagName: string | null, attrs: string[] | null, data: TContainer | null): TNode {
+  ngDevMode && ngDevMode.tNode++;
   return {
     flags: 0,
     tagName: tagName,
@@ -1045,10 +1054,12 @@ export function elementClassNamed<T>(index: number, className: string, value: T 
   if (value !== NO_CHANGE) {
     const lElement = data[index] as LElementNode;
     if (value) {
+      ngDevMode && ngDevMode.rendererAddClass++;
       isProceduralRenderer(renderer) ? renderer.addClass(lElement.native, className) :
                                        lElement.native.classList.add(className);
 
     } else {
+      ngDevMode && ngDevMode.rendererRemoveClass++;
       isProceduralRenderer(renderer) ? renderer.removeClass(lElement.native, className) :
                                        lElement.native.classList.remove(className);
     }
@@ -1073,6 +1084,7 @@ export function elementClass<T>(index: number, value: T | NO_CHANGE): void {
     // future
     // we will add logic here which would work with the animation code.
     const lElement: LElementNode = data[index];
+    ngDevMode && ngDevMode.rendererSetClassName++;
     isProceduralRenderer(renderer) ? renderer.setProperty(lElement.native, 'className', value) :
                                      lElement.native['className'] = stringify(value);
   }
@@ -1099,6 +1111,7 @@ export function elementStyleNamed<T>(
   if (value !== NO_CHANGE) {
     const lElement: LElementNode = data[index];
     if (value == null) {
+      ngDevMode && ngDevMode.rendererRemoveStyle++;
       isProceduralRenderer(renderer) ?
           renderer.removeStyle(lElement.native, styleName, RendererStyleFlags3.DashCase) :
           lElement.native['style'].removeProperty(styleName);
@@ -1106,6 +1119,7 @@ export function elementStyleNamed<T>(
       let strValue =
           typeof suffixOrSanitizer == 'function' ? suffixOrSanitizer(value) : stringify(value);
       if (typeof suffixOrSanitizer == 'string') strValue = strValue + suffixOrSanitizer;
+      ngDevMode && ngDevMode.rendererSetStyle++;
       isProceduralRenderer(renderer) ?
           renderer.setStyle(lElement.native, styleName, strValue, RendererStyleFlags3.DashCase) :
           lElement.native['style'].setProperty(styleName, strValue);
@@ -1133,14 +1147,20 @@ export function elementStyle<T>(
     // we will add logic here which would work with the animation code.
     const lElement = data[index] as LElementNode;
     if (isProceduralRenderer(renderer)) {
+      ngDevMode && ngDevMode.rendererSetStyle++;
       renderer.setProperty(lElement.native, 'style', value);
     } else {
       const style = lElement.native['style'];
       for (let i = 0, keys = Object.keys(value); i < keys.length; i++) {
         const styleName: string = keys[i];
         const styleValue: any = (value as any)[styleName];
-        styleValue == null ? style.removeProperty(styleName) :
-                             style.setProperty(styleName, styleValue);
+        if (styleValue == null) {
+          ngDevMode && ngDevMode.rendererRemoveStyle++;
+          style.removeProperty(styleName);
+        } else {
+          ngDevMode && ngDevMode.rendererSetStyle++;
+          style.setProperty(styleName, styleValue);
+        }
       }
     }
   }
@@ -1162,6 +1182,7 @@ export function text(index: number, value?: any): void {
   ngDevMode &&
       assertEqual(
           currentView.bindingStartIndex, -1, 'text nodes should be created before bindings');
+  ngDevMode && ngDevMode.rendererCreateTextNode++;
   const textNode = createTextNode(value, renderer);
   const node = createLNode(index, LNodeType.Element, textNode);
   // Text nodes are self closing.
@@ -1181,9 +1202,18 @@ export function textBinding<T>(index: number, value: T | NO_CHANGE): void {
   let existingNode = data[index] as LTextNode;
   ngDevMode && assertNotNull(existingNode, 'LNode should exist');
   ngDevMode && assertNotNull(existingNode.native, 'native element should exist');
-  value !== NO_CHANGE &&
-      (isProceduralRenderer(renderer) ? renderer.setValue(existingNode.native, stringify(value)) :
-                                        existingNode.native.textContent = stringify(value));
+  if (existingNode.native) {
+    // If DOM node exists and value changed, update textContent
+    ngDevMode && ngDevMode.rendererSetText++;
+    value !== NO_CHANGE &&
+        (isProceduralRenderer(renderer) ? renderer.setValue(existingNode.native, stringify(value)) :
+                                          existingNode.native.textContent = stringify(value));
+  } else {
+    // Node was created but DOM node creation was delayed. Create and append now.
+    ngDevMode && ngDevMode.rendererCreateTextNode++;
+    existingNode.native = createTextNode(value, renderer);
+    insertChild(existingNode, currentView);
+  }
 }
 
 //////////////////////////
@@ -1385,7 +1415,7 @@ export function createLContainer(
  * @param localRefs A set of local reference bindings on the element.
  */
 export function container(
-    index: number, template?: ComponentTemplate<any>, tagName?: string, attrs?: string[],
+    index: number, template?: ComponentTemplate<any>, tagName?: string | null, attrs?: string[],
     localRefs?: string[] | null): void {
   ngDevMode && assertEqual(
                    currentView.bindingStartIndex, -1,
