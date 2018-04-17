@@ -22,6 +22,7 @@ export {
   injectChangeDetectorRef as ɵinjectChangeDetectorRef,
   injectAttribute as ɵinjectAttribute,
   PublicFeature as ɵPublicFeature,
+  LifecycleHooksFeature as ɵLifecycleHooksFeature,
   NgOnChangesFeature as ɵNgOnChangesFeature,
   CssSelectorList as ɵCssSelectorList,
   markDirty as ɵmarkDirty,

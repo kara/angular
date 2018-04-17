@@ -8,14 +8,10 @@
 
 import {Component, NgModule, ɵrenderComponent as renderComponent} from '@angular/core';
 
-@Component({selector: 'hello-world', template: 'Hello World!'})
-export class HelloWorld {
-}
-// TODO(misko): Forgetting to export HelloWorld and not having NgModule fails silently.
+@Component({selector: 'hello-world', template: 'Hello, World!'})
+export class HelloWorld {}
 
 @NgModule({declarations: [HelloWorld]})
-export class INeedToExistEvenThoughIAmNotNeeded {
-}
-// TODO(misko): Package should not be required to make this work.
+export class AppModule {}
 
 renderComponent(HelloWorld);

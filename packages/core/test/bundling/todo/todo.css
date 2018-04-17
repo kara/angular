@@ -40,6 +40,10 @@ input[type="checkbox"] {
 	outline: none;
 }
 
+.panic {
+  color: darkred;
+}
+
 .hidden {
 	display: none;
 }
