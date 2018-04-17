@@ -60,7 +60,6 @@ ts_devserver(
     name = "devserver",
     static_files = [
         ":bundle.min_debug.js",
-        ":bundle.min.js",
         "index.html",
     ],
     deps = [],

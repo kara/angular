@@ -14,7 +14,7 @@ import {ComponentRef as viewEngine_ComponentRef} from '../linker/component_facto
 
 import {assertComponentType, assertNotNull} from './assert';
 import {queueInitHooks, queueLifecycleHooks} from './hooks';
-import {CLEAN_PROMISE, ROOT_DIRECTIVE_INDICES, _getComponentHostLElementNode, baseDirectiveCreate, createLView, createTView, detectChangesInternal, enterView, executeInitAndContentHooks, getRootView, hostElement, initChangeDetectorIfExisting, leaveView, locateHostElement, setHostBindings} from './instructions';
+import {CLEAN_PROMISE, ROOT_DIRECTIVE_INDICES, checkNoChanges, _getComponentHostLElementNode, baseDirectiveCreate, createLView, createTView, detectChangesInternal, enterView, executeInitAndContentHooks, getRootView, hostElement, initChangeDetectorIfExisting, leaveView, locateHostElement, setHostBindings} from './instructions';
 import {ComponentDef, ComponentType} from './interfaces/definition';
 import {LElementNode, TNodeFlags} from './interfaces/node';
 import {RElement, RendererFactory3, domRendererFactory3} from './interfaces/renderer';
@@ -158,6 +158,7 @@ export function renderComponent<T>(
     detectChangesInternal(elementNode.data as LView, elementNode, componentDef, component);
   } finally {
     leaveView(oldView);
+    ngDevMode && checkNoChanges(component !);
     if (rendererFactory.end) rendererFactory.end();
   }
 

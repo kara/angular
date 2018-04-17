@@ -7,7 +7,7 @@
  */
 
 import {CommonModule, NgForOf, NgIf} from '@angular/common';
-import {ChangeDetectionStrategy, Component, EventEmitter, InjectFlags, Injectable, Input, IterableDiffers, NgModule, Output, createInjector, defineInjector, inject, ɵComponentDef as ComponentDef, ɵComponentType as ComponentType, ɵDirectiveDef as DirectiveDef, ɵDirectiveType as DirectiveType, ɵNgOnChangesFeature as NgOnChangesFeature, ɵdefaultIterableDiffers as defaultIterableDiffers, ɵdefineDirective as defineDirective, ɵdirectiveInject as directiveInject, ɵinjectTemplateRef as injectTemplateRef, ɵinjectViewContainerRef as injectViewContainerRef, ɵmarkDirty as markDirty, ɵrenderComponent as renderComponent} from '@angular/core';
+import {ChangeDetectionStrategy, Component, ɵLifecycleHooksFeature as LifecycleHooksFeature, EventEmitter, InjectFlags, Injectable, Input, IterableDiffers, NgModule, Output, createInjector, defineInjector, inject, ɵComponentDef as ComponentDef, ɵComponentType as ComponentType, ɵDirectiveDef as DirectiveDef, ɵDirectiveType as DirectiveType, ɵNgOnChangesFeature as NgOnChangesFeature, ɵdefaultIterableDiffers as defaultIterableDiffers, ɵdefineDirective as defineDirective, ɵdirectiveInject as directiveInject, ɵinjectTemplateRef as injectTemplateRef, ɵinjectViewContainerRef as injectViewContainerRef, ɵmarkDirty as markDirty, ɵrenderComponent as renderComponent} from '@angular/core';
 
 
 export class Todo {
@@ -91,8 +91,8 @@ export class TodoStore {
         </li>
       </ul>
     </section>
-    <footer *ngIf="todoStore.todos.length > 0" class="footer">
-      <span class="todo-count">
+    <footer class="footer">
+      <span class="todo-count" [class.panic]="todoLength > 4">
         <strong>{{todoStore.getRemaining().length}}</strong>
         {{todoStore.getRemaining().length == 1 ? 'item' : 'items'}} left
       </span>
@@ -109,8 +109,13 @@ export class TodoStore {
 })
 export class ToDoAppComponent {
   newTodoText = '';
+  todoLength = 0;
 
   constructor(public todoStore: TodoStore) {}
+
+  ngAfterViewInit() {
+    this.todoLength = this.todoStore.todos.length;
+  }
 
   stopEditing(todo: Todo, editedTitle: string) {
     todo.title = editedTitle;
@@ -181,4 +186,4 @@ export class ToDoAppModule {
 }
 
 // TODO(misko): create cleaner way to publish component into global location for tests.
-(window as any).toDoAppComponent = renderComponent(ToDoAppComponent);
+(window as any).toDoAppComponent = renderComponent(ToDoAppComponent, {hostFeatures: [LifecycleHooksFeature]});
