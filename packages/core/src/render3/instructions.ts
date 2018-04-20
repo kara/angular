@@ -9,7 +9,7 @@
 import './ng_dev_mode';
 
 import {assertEqual, assertLessThan, assertNotEqual, assertNotNull, assertNull, assertSame} from './assert';
-import {LContainer, TContainer} from './interfaces/container';
+import {LContainer} from './interfaces/container';
 import {LInjector} from './interfaces/injector';
 import {CssSelectorList, LProjection, NG_PROJECT_AS_ATTR_NAME} from './interfaces/projection';
 import {LQueries} from './interfaces/query';
@@ -17,7 +17,7 @@ import {CurrentMatchesList, LView, LViewFlags, LifecycleStage, RootContext, TDat
 
 import {LContainerNode, LElementNode, LNode, LNodeType, TNodeFlags, LProjectionNode, LTextNode, LViewNode, TNode, TContainerNode, InitialInputData, InitialInputs, PropertyAliases, PropertyAliasValue,} from './interfaces/node';
 import {assertNodeType} from './node_assert';
-import {appendChild, insertView, appendProjectedNode, removeView, canInsertNativeNode, createTextNode} from './node_manipulation';
+import {appendChild, insertView, appendProjectedNode, removeView, canInsertNativeNode, createTextNode, insertChild} from './node_manipulation';
 import {isNodeMatchingSelectorList, matchingSelectorIndex} from './node_selector_matcher';
 import {ComponentDef, ComponentTemplate, DirectiveDef, DirectiveDefList, DirectiveDefListOrFactory, PipeDefList, PipeDefListOrFactory, RenderFlags} from './interfaces/definition';
 import {RElement, RText, Renderer3, RendererFactory3, ProceduralRenderer3, RendererStyleFlags3, isProceduralRenderer} from './interfaces/renderer';
@@ -450,9 +450,17 @@ export function renderTemplate<T>(
   return host;
 }
 
+/**
+ * Used for rendering embedded views (Not top level component views).
+ *
+ * Embedded views are different because they are closures and we can't
+ * store `tView` on them since they could be in a loop and we would have
+ * many instances of template closure for each template.
+ */
 export function renderEmbeddedTemplate<T>(
-    viewNode: LViewNode | null, template: ComponentTemplate<T>, context: T, renderer: Renderer3,
-    directives?: DirectiveDefList | null, pipes?: PipeDefList | null): LViewNode {
+    viewNode: LViewNode | null, tView: TView, template: ComponentTemplate<T>, context: T,
+    renderer: Renderer3, directives?: DirectiveDefList | null,
+    pipes?: PipeDefList | null): LViewNode {
   const _isParent = isParent;
   const _previousOrParentNode = previousOrParentNode;
   let oldView: LView;
@@ -461,7 +469,6 @@ export function renderEmbeddedTemplate<T>(
     previousOrParentNode = null !;
     let rf: RenderFlags = RenderFlags.Update;
     if (viewNode == null) {
-      const tView = getOrCreateTView(template, directives || null, pipes || null);
       const lView = createLView(-1, renderer, tView, template, context, LViewFlags.CheckAlways);
 
       viewNode = createLNode(null, LNodeType.View, null, lView);
@@ -550,18 +557,18 @@ export function elementStart(
 
   if (attrs) setUpAttributes(native, attrs);
   appendChild(node.parent !, native, currentView);
-  createDirectivesAndLocals(index, name, attrs, localRefs, null);
+  createDirectivesAndLocals(index, name, attrs, localRefs, false);
   return native;
 }
 
 function createDirectivesAndLocals(
     index: number, name: string | null, attrs: string[] | null | undefined,
-    localRefs: string[] | null | undefined, containerData: TView[] | null) {
+    localRefs: string[] | null | undefined, inlineView: boolean) {
   const node = previousOrParentNode;
   if (firstTemplatePass) {
     ngDevMode && ngDevMode.firstTemplatePass++;
     ngDevMode && assertDataInRange(index - 1);
-    node.tNode = tData[index] = createTNode(name, attrs || null, containerData);
+    node.tNode = tData[index] = createTNode(name, attrs || null, inlineView ? [] : null);
     cacheMatchingDirectivesForNode(node.tNode, currentView.tView, localRefs || null);
   } else {
     instantiateDirectivesDirectly();
@@ -729,6 +736,13 @@ function saveResolvedLocalsInData(): void {
 function getOrCreateTView(
     template: ComponentTemplate<any>, directives: DirectiveDefListOrFactory | null,
     pipes: PipeDefListOrFactory | null): TView {
+  // TODO(misko): reading `ngPrivateData` here is problematic for two reasons
+  // 1. It is a megamorphic call on each invocation.
+  // 2. For nested embedded views (ngFor inside ngFor) the template instance is per
+  //    outer template invocation, which means that no such property will exist
+  // Correct solution is to only put `ngPrivateData` on the Component template
+  // and not on embedded templates.
+
   return template.ngPrivateData ||
       (template.ngPrivateData = createTView(directives, pipes) as never);
 }
@@ -736,6 +750,7 @@ function getOrCreateTView(
 /** Creates a TView instance */
 export function createTView(
     defs: DirectiveDefListOrFactory | null, pipes: PipeDefListOrFactory | null): TView {
+  debugger;
   ngDevMode && ngDevMode.tView++;
   return {
     data: [],
@@ -979,7 +994,7 @@ export function elementProperty<T>(
  * @returns the TNode object
  */
 function createTNode(
-    tagName: string | null, attrs: string[] | null, data: TContainer | null): TNode {
+    tagName: string | null, attrs: string[] | null, data: TView | TView[] | null): TNode {
   ngDevMode && ngDevMode.tNode++;
   return {
     flags: 0,
@@ -1387,7 +1402,8 @@ function generateInitialInputs(
 
 
 export function createLContainer(
-    parentLNode: LNode, currentView: LView, template?: ComponentTemplate<any>): LContainer {
+    parentLNode: LNode, currentView: LView,
+    template?: ComponentTemplate<any>): LContainer {
   ngDevMode && assertNotNull(parentLNode, 'containers should have a parent');
   return <LContainer>{
     views: [],
@@ -1422,14 +1438,13 @@ export function container(
                    'container nodes should be created before any bindings');
 
   const currentParent = isParent ? previousOrParentNode : previousOrParentNode.parent !;
+
   const lContainer = createLContainer(currentParent, currentView, template);
-
   const node = createLNode(index, LNodeType.Container, undefined, lContainer);
-
   // Containers are added to the current view tree instead of their embedded views
   // because views can be removed and re-inserted.
   addToViewTree(currentView, node.data);
-  createDirectivesAndLocals(index, tagName || null, attrs, localRefs, []);
+  createDirectivesAndLocals(index, tagName || null, attrs, localRefs, template == null);
 
   isParent = false;
   ngDevMode && assertNodeType(previousOrParentNode, LNodeType.Container);
@@ -1494,9 +1509,12 @@ function refreshDynamicChildren() {
     if (current.dynamicViewCount !== 0 && (current as LContainer).views) {
       const container = current as LContainer;
       for (let i = 0; i < container.views.length; i++) {
-        const view = container.views[i];
+        const lViewNode = container.views[i];
         // The directives and pipes are not needed here as an existing view is only being refreshed.
-        renderEmbeddedTemplate(view, view.data.template !, view.data.context !, renderer);
+        const dynamicView = lViewNode.data;
+        ngDevMode && assertNotNull(dynamicView.tView, 'TView must be allocated');
+        renderEmbeddedTemplate(
+            lViewNode, dynamicView.tView, dynamicView.template !, dynamicView.context !, renderer);
       }
     }
   }
@@ -1571,18 +1589,19 @@ export function embeddedViewStart(viewBlockId: number): RenderFlags {
  * the static data for a node in the view above it with the same index (since it's in the
  * same template).
  *
- * @param viewIndex The index of the TView in TContainer
+ * @param viewIndex The index of the TView in TNode.data
  * @param parent The parent container in which to look for the view's static data
  * @returns TView
  */
 function getOrCreateEmbeddedTView(viewIndex: number, parent: LContainerNode): TView {
   ngDevMode && assertNodeType(parent, LNodeType.Container);
-  const tContainer = (parent !.tNode as TContainerNode).data;
-  if (viewIndex >= tContainer.length || tContainer[viewIndex] == null) {
+  const containerTViews = (parent !.tNode as TContainerNode).data as TView[];
+  ngDevMode && assertNotNull(containerTViews, 'TView expected');
+  if (viewIndex >= containerTViews.length || containerTViews[viewIndex] == null) {
     const tView = currentView.tView;
-    tContainer[viewIndex] = createTView(tView.directiveRegistry, tView.pipeRegistry);
+    containerTViews[viewIndex] = createTView(tView.directiveRegistry, tView.pipeRegistry);
   }
-  return tContainer[viewIndex];
+  return containerTViews[viewIndex];
 }
 
 /** Marks the end of an embedded view. */

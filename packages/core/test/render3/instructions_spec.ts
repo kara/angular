@@ -102,18 +102,18 @@ describe('instructions', () => {
       elementStart(0, 'div', ['style', 'height: 10px']);
       elementEnd();
     }
-    const fixture = new TemplateFixture(createDivWithStyle);
 
     it('should add style', () => {
+      const fixture = new TemplateFixture(createDivWithStyle);
       fixture.update(() => elementStyle(0, {'background-color': 'red'}));
       expect(fixture.html).toEqual('<div style="height: 10px; background-color: red;"></div>');
     });
   });
 
   describe('elementClass', () => {
-    const fixture = new TemplateFixture(createDiv);
 
     it('should add class', () => {
+      const fixture = new TemplateFixture(createDiv);
       fixture.update(() => elementClass(0, 'multiple classes'));
       expect(fixture.html).toEqual('<div class="multiple classes"></div>');
     });
@@ -132,7 +132,7 @@ describe('instructions', () => {
 
         static ngComponentDef = defineComponent({
           type: NestedLoops,
-          selectors: [['todo-app']],
+          selectors: [['nested-loops']],
           factory: function ToDoAppComponent_Factory() { return new NestedLoops(); },
           template: function ToDoAppComponent_Template(rf: RenderFlags, ctx: NestedLoops) {
             if (rf & 1) {
@@ -171,8 +171,8 @@ describe('instructions', () => {
       }
       const fixture = new ComponentFixture(NestedLoops);
       expect(ngDevMode).toHaveProperties({
-        // Expect: host view + component + *ngForRow + *ngForCol
-        tView: 7,  // should be: 4,
+        // Expect: fixture view/Host view + component + ngForRow + ngForCol
+        tView: 4,  // should be: 4,
       });
 
     });

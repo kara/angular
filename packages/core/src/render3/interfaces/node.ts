@@ -6,7 +6,7 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {LContainer, TContainer} from './container';
+import {LContainer} from './container';
 import {LInjector} from './injector';
 import {LProjection} from './projection';
 import {LQueries} from './query';
@@ -290,14 +290,14 @@ export interface TNode {
    *
    * If this TNode corresponds to an LElementNode, data will be null.
    */
-  data: TContainer|null;
+  data: TView[] | TView | null;
 }
 
 /** Static data for an LElementNode  */
-export interface TElementNode extends TNode { data: null; }
+export interface TElementNode extends TNode { data: TView|null; }
 
 /** Static data for an LContainerNode */
-export interface TContainerNode extends TNode { data: TContainer; }
+export interface TContainerNode extends TNode { data: TView[]|TView; }
 
 /**
  * This mapping is necessary so we can set input properties and output listeners
