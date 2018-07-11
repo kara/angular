@@ -20,7 +20,7 @@ import {AttributeMarker, InitialInputData, InitialInputs, LContainerNode, LEleme
 import {CssSelectorList, NG_PROJECT_AS_ATTR_NAME} from './interfaces/projection';
 import {LQueries} from './interfaces/query';
 import {ProceduralRenderer3, RComment, RElement, RText, Renderer3, RendererFactory3, RendererStyleFlags3, isProceduralRenderer} from './interfaces/renderer';
-import {BINDING_INDEX, CLEANUP, CONTAINER_INDEX, CONTEXT, CurrentMatchesList, DIRECTIVES, FLAGS, HEADER_OFFSET, HOST_NODE, INJECTOR, LViewData, LViewFlags, NEXT, PARENT, QUERIES, RENDERER, RootContext, SANITIZER, TAIL, TData, TVIEW, TView} from './interfaces/view';
+import {BINDING_INDEX, CLEANUP, CONTAINER_INDEX, CONTEXT, CurrentMatchesList, DIRECTIVES, FLAGS, HEADER_OFFSET, HOST_NODE, INJECTOR, LViewData, LViewFlags, NEXT, PARENT, QUERIES, RENDERER, RootContext, SANITIZER, TData, TVIEW, TView} from './interfaces/view';
 import {assertNodeOfPossibleTypes, assertNodeType} from './node_assert';
 import {appendChild, appendProjectedNode, canInsertNativeNode, createTextNode, findComponentHost, getChildLNode, getLViewChild, getNextLNode, getParentLNode, insertView, removeView} from './node_manipulation';
 import {isNodeMatchingSelectorList, matchingSelectorIndex} from './node_selector_matcher';
@@ -74,6 +74,14 @@ const HEADER_FILLER = new Array(HEADER_OFFSET).fill(null);
  * already seen it, and thus have a circular dependency.
  */
 export const CIRCULAR = '__CIRCULAR__';
+
+/**
+ * The last LViewData or LContainer beneath this LViewData in the hierarchy.
+ *
+ * The tail allows us to quickly add a new state to the end of the view list
+ * without having to propagate starting from the first child.
+ */
+let VIEW_TAIL: LViewData|LContainer|null = null;
 
 /**
  * This property gets set before entering a template.
@@ -208,6 +216,7 @@ export function enterView(newView: LViewData, host: LElementNode | LViewNode | n
   const oldView: LViewData = viewData;
   directives = newView && newView[DIRECTIVES];
   tView = newView && newView[TVIEW];
+  VIEW_TAIL = null;
 
   creationMode = newView && (newView[FLAGS] & LViewFlags.CreationMode) === LViewFlags.CreationMode;
   firstTemplatePass = newView && tView.firstTemplatePass;
@@ -254,6 +263,9 @@ export function leaveView(newView: LViewData, creationOnly?: boolean): void {
  * Note: view hooks are triggered later when leaving the view.
  */
 function refreshView() {
+  // This needs to be set before children are processed to support recursive components
+  tView.firstTemplatePass = firstTemplatePass = false;
+
   if (!checkNoChangesMode) {
     executeInitHooks(viewData, tView, creationMode);
   }
@@ -262,8 +274,6 @@ function refreshView() {
     executeHooks(directives !, tView.contentHooks, tView.contentCheckHooks, creationMode);
   }
 
-  // This needs to be set before children are processed to support recursive components
-  tView.firstTemplatePass = firstTemplatePass = false;
 
   setHostBindings(tView.hostBindings);
   refreshChildComponents(tView.components);
@@ -314,7 +324,6 @@ export function createLViewData<T>(
     viewData && viewData[INJECTOR],                                              // injector
     renderer,                                                                    // renderer
     sanitizer || null,                                                           // sanitizer
-    null,                                                                        // tail
     -1                                                                           // containerIndex
   ];
 }
@@ -2064,12 +2073,26 @@ export function projection(nodeIndex: number, selectorIndex: number = 0, attrs?:
  */
 export function addToViewTree<T extends LViewData|LContainer>(
     currentView: LViewData, adjustedHostIndex: number, state: T): T {
-  if (currentView[TAIL]) {
-    currentView[TAIL] ![NEXT] = state;
-  } else if (firstTemplatePass) {
+  const tView = currentView[TVIEW];
+  if (tView.childIndex === -1) {
+    // We have never processed this template. We need to start the view tree for it.
     tView.childIndex = adjustedHostIndex;
+  } else if (VIEW_TAIL) {
+    // There is an existing view tree; add to the end of it.
+    VIEW_TAIL[NEXT] = state;
+  } else if (tView.firstTemplatePass) {
+    // If there's a childIndex but no TAIL, we know that this view was at least partially processed
+    // but the TAIL was cleared when we left the view. If firstTemplatePass is false, the view must
+    // have completed processing and TAIL can be re-set (probably a new view of a for loop). If
+    // still true, the processing of this template was interrupted, so we need to manually get to
+    // the end of the view tree to keep processing.
+    let tailView = getLViewChild(currentView) !;
+    while (tailView[NEXT]) {
+      tailView = tailView[NEXT] !;
+    }
+    if (tailView !== state) tailView[NEXT] = state;
   }
-  currentView[TAIL] = state;
+  VIEW_TAIL = state;
   return state;
 }
 

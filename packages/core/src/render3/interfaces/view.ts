@@ -16,7 +16,7 @@ import {LQueries} from './query';
 import {Renderer3} from './renderer';
 
 /** Size of LViewData's header. Necessary to adjust for it when setting slots.  */
-export const HEADER_OFFSET = 15;
+export const HEADER_OFFSET = 14;
 
 // Below are constants for LViewData indices to help us look up LViewData members
 // without having to remember the specific indices.
@@ -34,8 +34,7 @@ export const CONTEXT = 9;
 export const INJECTOR = 10;
 export const RENDERER = 11;
 export const SANITIZER = 12;
-export const TAIL = 13;
-export const CONTAINER_INDEX = 14;
+export const CONTAINER_INDEX = 13;
 
 /**
  * `LViewData` stores all of the information needed to process the instructions as
@@ -134,15 +133,6 @@ export interface LViewData extends Array<any> {
 
   /** An optional custom sanitizer. */
   [SANITIZER]: Sanitizer|null;
-
-  /**
-   * The last LViewData or LContainer beneath this LViewData in the hierarchy.
-   *
-   * The tail allows us to quickly add a new state to the end of the view list
-   * without having to propagate starting from the first child.
-   */
-  // TODO: replace with global
-  [TAIL]: LViewData|LContainer|null;
 
   /**
    * The index of the parent container's host node. Applicable only to embedded views that

@@ -15,6 +15,7 @@ import {pipe, pipeBind1} from '../../src/render3/pipe';
 
 import {getRendererFactory2} from './imported_renderer2';
 import {ComponentFixture, TemplateFixture, createComponent} from './render_util';
+import {AttributeMarker} from "@angular/core/src/render3";
 
 describe('ViewContainerRef', () => {
   let directiveInstance: DirectiveWithVCRef|null;
@@ -941,6 +942,88 @@ describe('ViewContainerRef', () => {
   });
 
   describe('life cycle hooks', () => {
+
+    it('should call destroy hooks for an embedded view created in the constructor of a structural dir', () => {
+      let events: string[] = [];
+
+      class IfDir {
+
+        constructor(public vcr: ViewContainerRef, public tmp: TemplateRef<any>) {
+          this.vcr.createEmbeddedView(this.tmp);
+        }
+
+        static ngDirectiveDef = defineDirective({
+          type: IfDir,
+          selectors: [['', 'ifDir', '']],
+          factory: () => new IfDir(injectViewContainerRef(), injectTemplateRef())
+        });
+      }
+
+      class Comp {
+        val: string = '';
+
+        ngOnDestroy() {
+          events.push(`comp ${this.val}`);
+        }
+
+        static ngComponentDef = defineComponent({
+          type: Comp,
+          selectors: [['comp']],
+          factory: () => new Comp(),
+          template: function(rf: RenderFlags, ctx: any) {
+            if (rf & RenderFlags.Create) {
+              text(0, 'comp text');
+            }
+          },
+          inputs: {val: 'val'}
+        });
+      }
+
+
+      /**
+       * % if (!skipContext) {
+         *   <div *ifDir>
+         *       <comp val="1"></comp>
+         *   </div>
+         *   <comp val="2"></comp>
+         * % }
+       */
+      const App = createComponent('app', function(rf: RenderFlags, ctx: any) {
+        if (rf & RenderFlags.Create) {
+          container(0);
+        }
+        if (rf & RenderFlags.Update) {
+          containerRefreshStart(0); {
+            if (!ctx.skipContent) {
+              if (embeddedViewStart(0) & RenderFlags.Create) {
+                container(0, IfTemplate, 'div', [AttributeMarker.SelectOnly, 'ifDir']);
+                elementStart(1, 'comp', ['val', '2']);
+                elementEnd();
+              }
+              embeddedViewEnd();
+            }
+          } containerRefreshEnd();
+        }
+
+        function IfTemplate(rf1: RenderFlags, ctx1: any) {
+          if (rf1 & RenderFlags.Create) {
+            elementStart(0, 'div'); {
+              elementStart(1, 'comp', ['val', '1']);
+              elementEnd();
+            } elementEnd();
+          }
+        }
+      }, [IfDir, Comp]);
+
+      const fixture = new ComponentFixture(App);
+      expect(fixture.html).toEqual('<div><comp val="1">comp text</comp></div><comp val="2">comp text</comp>');
+      expect(events).toEqual([]);
+
+      fixture.component.skipContent = true;
+      fixture.update();
+      expect(fixture.html).toEqual('');
+      expect(events).toEqual(['comp 1', 'comp 2']);
+    });
 
     // Angular 5 reference: https://stackblitz.com/edit/lifecycle-hooks-vcref
     const log: string[] = [];

@@ -15,7 +15,16 @@ import {ComponentDefInternal, DirectiveDefInternal, RenderFlags} from '../../src
 import {createRendererType2} from '../../src/view/index';
 
 import {getRendererFactory2} from './imported_renderer2';
-import {ComponentFixture, containerEl, renderComponent, renderToHtml, requestAnimationFrame, toHtml} from './render_util';
+import {
+  ComponentFixture,
+  containerEl,
+  createComponent,
+  renderComponent,
+  renderToHtml,
+  requestAnimationFrame,
+  toHtml
+} from './render_util';
+import {pureFunction0} from "@angular/core/src/render3/pure_function";
 
 describe('component', () => {
   class CounterComponent {
@@ -285,8 +294,13 @@ describe('encapsulation', () => {
 });
 
 describe('recursive components', () => {
-  let events: string[] = [];
-  let count = 0;
+  let events: string[];
+  let count: number;
+
+  beforeEach(() => {
+    events = [];
+    count = 0;
+  });
 
   class TreeNode {
     constructor(
@@ -294,10 +308,24 @@ describe('recursive components', () => {
         public right: TreeNode|null) {}
   }
 
+  /**
+   * {{ data.value }}
+   *
+   * % if (data.left != null) {
+   *   <tree-comp [data]="data.left"></tree-comp>
+   * % }
+   * % if (data.right != null) {
+   *   <tree-comp [data]="data.right"></tree-comp>
+   * % }
+   */
   class TreeComponent {
     data: TreeNode = _buildTree(0);
 
     ngDoCheck() { events.push('check' + this.data.value); }
+
+    ngOnDestroy() {
+      events.push('destroy' + this.data.value);
+    }
 
     static ngComponentDef = defineComponent({
       type: TreeComponent,
@@ -365,6 +393,121 @@ describe('recursive components', () => {
     tick(comp);
     expect(events).toEqual(['check6', 'check2', 'check0', 'check1', 'check5', 'check3', 'check4']);
   });
+
+  it('should call onDestroys properly', () => {
+
+    /**
+     * % if (!skipContent) {
+     *   <tree-comp></tree-comp>
+     * % }
+     */
+    const App = createComponent('app', function(rf: RenderFlags, ctx: any) {
+      if (rf & RenderFlags.Create) {
+        container(0);
+      }
+      if (rf & RenderFlags.Update) {
+        containerRefreshStart(0);
+        if (!ctx.skipContent) {
+          const rf0 = embeddedViewStart(0);
+          if (rf0 & RenderFlags.Create) {
+            elementStart(0, 'tree-comp');
+            elementEnd();
+          }
+          embeddedViewEnd();
+        }
+        containerRefreshEnd();
+      }
+    }, [TreeComponent]);
+
+    const fixture = new ComponentFixture(App);
+    expect(getRenderedText(fixture.component)).toEqual('6201534');
+
+    events = [];
+    fixture.component.skipContent = true;
+    fixture.update();
+    expect(events).toEqual(['destroy0', 'destroy1', 'destroy2', 'destroy3', 'destroy4', 'destroy5', 'destroy6']);
+  });
+
+  it('should call onDestroys properly for a recursive component with no siblings', () => {
+    /**
+     * {{ data.value }}
+     * % if (data.left != null) {
+     *   <tree-comp [data]="data.left"></tree-comp>
+     * % }
+     */
+    class RecursiveComp  {
+      data: TreeNode = _buildTree(0);
+
+      ngOnDestroy() {
+        events.push('destroy' + this.data.value);
+      }
+
+      static ngComponentDef = defineComponent({
+        type: RecursiveComp,
+        selectors: [['recursive-comp']],
+        factory: () => new RecursiveComp(),
+        template: (rf: RenderFlags, ctx: TreeComponent) => {
+          if (rf & RenderFlags.Create) {
+            text(0);
+            container(1);
+          }
+          if (rf & RenderFlags.Update) {
+            textBinding(0, bind(ctx.data.value));
+            containerRefreshStart(1);
+            {
+              if (ctx.data.left != null) {
+                let rf0 = embeddedViewStart(0);
+                if (rf0 & RenderFlags.Create) {
+                  elementStart(0, 'recursive-comp');
+                  elementEnd();
+                }
+                if (rf0 & RenderFlags.Update) {
+                  elementProperty(0, 'data', bind(ctx.data.left));
+                }
+                embeddedViewEnd();
+              }
+            }
+            containerRefreshEnd();
+          }
+        },
+        inputs: {data: 'data'}
+      });
+    }
+    (RecursiveComp.ngComponentDef as ComponentDefInternal<RecursiveComp>).directiveDefs =
+      () => [RecursiveComp.ngComponentDef];
+
+    /**
+     * % if (!skipContent) {
+     *   <recursive-comp></recursive-comp>
+     * % }
+     */
+    const App = createComponent('app', function(rf: RenderFlags, ctx: any) {
+      if (rf & RenderFlags.Create) {
+        container(0);
+      }
+      if (rf & RenderFlags.Update) {
+        containerRefreshStart(0);
+        if (!ctx.skipContent) {
+          const rf0 = embeddedViewStart(0);
+          if (rf0 & RenderFlags.Create) {
+            elementStart(0, 'recursive-comp');
+            elementEnd();
+          }
+          embeddedViewEnd();
+        }
+        containerRefreshEnd();
+      }
+    }, [RecursiveComp]);
+
+    const fixture = new ComponentFixture(App);
+    expect(getRenderedText(fixture.component)).toEqual('620');
+
+    events = [];
+    fixture.component.skipContent = true;
+    fixture.update();
+    expect(events).toEqual(['destroy0', 'destroy2', 'destroy6']);
+  });
+
 
   it('should map inputs minified & unminified names', async() => {
     class TestInputsComponent {

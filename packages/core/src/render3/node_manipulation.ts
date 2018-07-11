@@ -443,7 +443,7 @@ export function getParentState(state: LViewData | LContainer, rootView: LViewDat
  * @param view The LViewData to clean up
  */
 function cleanUpView(viewOrContainer: LViewData | LContainer): void {
-  if ((viewOrContainer as LViewData)[TVIEW]) {
+  if ((viewOrContainer as LViewData).length >= HEADER_OFFSET) {
     const view = viewOrContainer as LViewData;
     removeListeners(view);
     executeOnDestroys(view);
