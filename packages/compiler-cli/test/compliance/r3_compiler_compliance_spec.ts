@@ -553,7 +553,7 @@ describe('compiler compliance', () => {
               $r3$.ɵe();
             }
             const $foo$ = $r3$.ɵld(1);
-            function MyComponent_li_Template_2(rf, ctx0) {
+            function MyComponent_li_Template_2(rf, ctx0, ctx) {
               if (rf & 1) {
                 $r3$.ɵE(0, "li");
                 $r3$.ɵT(1);
@@ -1374,7 +1374,7 @@ describe('compiler compliance', () => {
                     $r3$.ɵe();
                   }
                   if (rf & 2) { $r3$.ɵp(1,"forOf",$r3$.ɵb(ctx.items)); }
-                  function MyComponent__svg_g_Template_1(rf, ctx0) {
+                  function MyComponent__svg_g_Template_1(rf, ctx0, ctx) {
                     if (rf & 1) {
                       $r3$.ɵNS();
                       $r3$.ɵE(0,"g");
@@ -1449,7 +1449,7 @@ describe('compiler compliance', () => {
                 $r3$.ɵp(1, "forOf", $r3$.ɵb(ctx.items));
               }
 
-              function MyComponent_li_Template_1(rf, ctx0) {
+              function MyComponent_li_Template_1(rf, ctx0, ctx) {
                 if (rf & 1) {
                   $r3$.ɵE(0, "li");
                   $r3$.ɵT(1);
@@ -1527,7 +1527,7 @@ describe('compiler compliance', () => {
                 $r3$.ɵp(1, "forOf", $r3$.ɵb(ctx.items));
               }
 
-              function MyComponent_li_Template_1(rf, ctx0) {
+              function MyComponent_li_Template_1(rf, ctx0, ctx) {
                 if (rf & 1) {
                   $r3$.ɵE(0, "li");
                   $r3$.ɵE(1, "div");
@@ -1544,17 +1544,18 @@ describe('compiler compliance', () => {
                   $r3$.ɵp(4, "forOf", $r3$.ɵb(IDENT.infos));
                 }
 
-                function MyComponent_li_li_Template_4(rf, ctx1) {
-                  if (rf & 1) {
-                    $r3$.ɵE(0, "li");
-                    $r3$.ɵT(1);
-                    $r3$.ɵe();
-                  }
-                  if (rf & 2) {
-                    const $item$ = ctx0.$implicit;
-                    const $info$ = ctx1.$implicit;
-                    $r3$.ɵt(1, $r3$.ɵi2(" ", $item$.name, ": ", $info$.description, " "));
-                  }
+              }
+              
+              function MyComponent_li_li_Template_4(rf, ctx1, ctx0, ctx) {
+                if (rf & 1) {
+                  $r3$.ɵE(0, "li");
+                  $r3$.ɵT(1);
+                  $r3$.ɵe();
+                }
+                if (rf & 2) {
+                  const $item$ = ctx0.$implicit;
+                  const $info$ = ctx1.$implicit;
+                  $r3$.ɵt(1, $r3$.ɵi2(" ", $item$.name, ": ", $info$.description, " "));
                 }
               }
             },

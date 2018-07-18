@@ -60,6 +60,7 @@ export class TemplateDefinitionBuilder implements t.Visitor<void>, LocalResolver
   private _variableCode: o.Statement[] = [];
   private _bindingCode: o.Statement[] = [];
   private _postfixCode: o.Statement[] = [];
+  private _nestedTemplates: o.Statement[] = [];
   private _valueConverter: ValueConverter;
   private _unsupported = unsupported;
   private _bindingScope: BindingScope;
@@ -164,7 +165,11 @@ export class TemplateDefinitionBuilder implements t.Visitor<void>, LocalResolver
     }
 
     return o.fn(
-        [new o.FnParam(RENDER_FLAGS, o.NUMBER_TYPE), new o.FnParam(this.contextParameter, null)],
+        // i.e. (rf: RenderFlags, ctx0: any, ctx: any)
+        [
+          new o.FnParam(RENDER_FLAGS, o.NUMBER_TYPE), ...this.getNestedContexts(),
+          new o.FnParam(CONTEXT_NAME, null)
+        ],
         [
           // Temporary variable declarations for query refresh (i.e. let _t: any;)
           ...this._prefixCode,
@@ -221,6 +226,18 @@ export class TemplateDefinitionBuilder implements t.Visitor<void>, LocalResolver
   addNamespaceInstruction(nsInstruction: o.ExternalReference, element: t.Element) {
     this._namespace = nsInstruction;
     this.instruction(this._creationCode, element.sourceSpan, nsInstruction);
+  }
+
+  getNestedContexts(): o.FnParam[] {
+    const nestedContexts = [];
+    let nestingLevel = this.level - 1;
+
+    while (nestingLevel >= 0) {
+      nestedContexts.push(new o.FnParam(`ctx${nestingLevel}`, null));
+      nestingLevel--;
+    }
+
+    return nestedContexts;
   }
 
   visitElement(element: t.Element) {
@@ -695,7 +712,13 @@ export class TemplateDefinitionBuilder implements t.Visitor<void>, LocalResolver
         this._namespace);
     const templateFunctionExpr =
         templateVisitor.buildTemplateFunction(template.children, template.variables);
-    this._postfixCode.push(templateFunctionExpr.toDeclStmt(templateName, null));
+
+    // flatten this template and its nested templates into one array
+    this._nestedTemplates = this._nestedTemplates.concat(
+        templateFunctionExpr.toDeclStmt(templateName, null), ...templateVisitor._nestedTemplates);
+
+    // only add nested template declarations to fn body if on top component level
+    if (this.level === 0) this._postfixCode = this._nestedTemplates;
   }
 
   // These should be handled in the template or element directly.

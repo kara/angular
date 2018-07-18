@@ -655,7 +655,7 @@ function callTemplateWithContexts(
     currentView = currentView[DECLARATION_PARENT] !;
   }
 
-  tView.template !(rf, context, ...contexts);
+  template !(rf, context, ...contexts);
 }
 
 export function renderComponentOrTemplate<T>(
