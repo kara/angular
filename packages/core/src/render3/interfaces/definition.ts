@@ -24,7 +24,7 @@ export type ComponentTemplate<T> = {
  */
 export type EmbeddedTemplate<T> = {
   (rf: RenderFlags, ctx: T, ...parentCtx: any[]): void;
-}
+};
 
 /**
  * Definition of what a query function should look like.

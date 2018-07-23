@@ -1252,7 +1252,7 @@ describe('compiler compliance', () => {
           }
         }
         …
-        static ngComponentDef = $r3$.ɵdefineComponent({
+        MyComponent.ngComponentDef = $r3$.ɵdefineComponent({
           type: MyComponent,
           selectors: [["my-component"]],
           factory: function MyComponent_Factory() { return new MyComponent(); },

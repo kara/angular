@@ -143,7 +143,7 @@ export class TemplateDefinitionBuilder implements t.Visitor<void>, LocalResolver
 
     const updateCode = this._bindingCode.length > 0 ?
         [renderFlagCheckIfStmt(core.RenderFlags.Update, this._variableCode.concat(
-          this._bindingCode.map((fn: () => o.Statement) => { return fn(); })))] :
+          this._variableCode.concat(this._bindingCode.map((fn: () => o.Statement) => fn()))))] :
         [];
 
     if (this._pureFunctionSlots > 0) {
@@ -625,11 +625,12 @@ export class TemplateDefinitionBuilder implements t.Visitor<void>, LocalResolver
 
         // TODO(chuckj): runtime: security context?
         const value = input.value.visit(this._valueConverter);
-        this.updateInstruction(
-            input.sourceSpan, instruction, () => {return [
-                                             o.literal(elementIndex), o.literal(input.name),
-                                             this.convertPropertyBinding(implicit, value), ...params
-                                           ]});
+        this.updateInstruction(input.sourceSpan, instruction, () => {
+          return [
+            o.literal(elementIndex), o.literal(input.name),
+            this.convertPropertyBinding(implicit, value), ...params
+          ];
+        });
       } else {
         this._unsupported(`binding type ${input.type}`);
       }

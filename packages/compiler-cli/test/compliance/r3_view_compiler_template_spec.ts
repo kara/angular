@@ -55,7 +55,7 @@ describe('compiler compliance: template', () => {
       function MyComponent_ul_li_div_Template_1(rf, $ctx2$, $ctx1$, $ctx0$, $ctx$) {
         if (rf & 1) {
           $i0$.ɵE(0, "div");
-          $i0$.ɵL("click", function MyComponent_ul_li_div_Template_1_div_click_listener($event:any){
+          $i0$.ɵL("click", function MyComponent_ul_li_div_Template_1_div_click_listener($event){
             const $outer$ = $ctx0$.$implicit;
             const $middle$ = $ctx1$.$implicit;
             const $inner$ = $ctx2$.$implicit;
