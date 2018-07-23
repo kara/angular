@@ -22,9 +22,8 @@ describe('exports', () => {
         element(0, 'input', ['value', 'one'], ['myInput', '']);
         text(2);
       }
-      let tmp: any;
       if (rf & RenderFlags.Update) {
-        tmp = load(1);
+        const tmp = load(1) as any;
         textBinding(2, tmp.value);
       }
     }
@@ -40,9 +39,8 @@ describe('exports', () => {
         element(0, 'comp', null, ['myComp', '']);
         text(2);
       }
-      let tmp: any;
       if (rf & RenderFlags.Update) {
-        tmp = load(1);
+        const tmp = load(1) as any;
         textBinding(2, tmp.name);
       }
     }
@@ -95,9 +93,8 @@ describe('exports', () => {
         element(0, 'comp', null, ['myComp', '']);
         element(2, 'div', ['myDir', '']);
       }
-      let tmp: any;
       if (rf & RenderFlags.Update) {
-        tmp = load(1);
+        const tmp = load(1) as any;
         elementProperty(2, 'myDir', bind(tmp));
       }
     }
@@ -114,9 +111,8 @@ describe('exports', () => {
         element(0, 'div', ['someDir', ''], ['myDir', 'someDir']);
         text(2);
       }
-      let tmp: any;
       if (rf & RenderFlags.Update) {
-        tmp = load(1);
+        const tmp = load(1) as any;
         textBinding(2, tmp.name);
       }
     }
@@ -156,8 +152,8 @@ describe('exports', () => {
           text(0);
           element(1, 'input', ['value', 'one'], ['myInput', '']);
         }
-        const tmp = load(2) as any;
         if (rf & RenderFlags.Update) {
+          const tmp = load(2) as any;
           textBinding(0, bind(tmp.value));
         }
       }
@@ -173,8 +169,8 @@ describe('exports', () => {
           element(0, 'div');
           element(1, 'input', ['value', 'one'], ['myInput', '']);
         }
-        const tmp = load(2) as any;
         if (rf & RenderFlags.Update) {
+          const tmp = load(2) as any;
           elementProperty(0, 'title', bind(tmp.value));
         }
       }
@@ -189,8 +185,8 @@ describe('exports', () => {
           element(0, 'div');
           element(1, 'input', ['value', 'one'], ['myInput', '']);
         }
-        const tmp = load(2) as any;
         if (rf & RenderFlags.Update) {
+          const tmp = load(2) as any;
           elementAttribute(0, 'aria-label', bind(tmp.value));
         }
       }
@@ -207,8 +203,8 @@ describe('exports', () => {
           elementEnd();
           element(1, 'input', ['type', 'checkbox', 'checked', 'true'], ['myInput', '']);
         }
-        const tmp = load(2) as any;
         if (rf & RenderFlags.Update) {
+          const tmp = load(2) as any;
           elementClassProp(0, 0, tmp.checked);
           elementStylingApply(0);
         }
@@ -254,9 +250,8 @@ describe('exports', () => {
           element(0, 'div', ['myDir', '']);
           element(1, 'comp', null, ['myComp', '']);
         }
-        let tmp: any;
         if (rf & RenderFlags.Update) {
-          tmp = load(2) as any;
+          const tmp = load(2) as any;
           elementProperty(0, 'myDir', bind(tmp));
         }
       }
@@ -275,11 +270,9 @@ describe('exports', () => {
           element(2, 'comp', null, ['myComp', '']);
           element(4, 'input', ['value', 'one'], ['myInput', '']);
         }
-        let tmp1: any;
-        let tmp2: any;
         if (rf & RenderFlags.Update) {
-          tmp1 = load(3) as any;
-          tmp2 = load(5) as any;
+          const tmp1 = load(3) as any;
+          const tmp2 = load(5) as any;
           textBinding(0, bind(tmp2.value));
           textBinding(1, bind(tmp1.name));
         }
@@ -316,13 +309,12 @@ describe('exports', () => {
             if (ctx.condition) {
               let rf1 = embeddedViewStart(1);
               {
-                let tmp: any;
                 if (rf1 & RenderFlags.Create) {
                   text(0);
                   element(1, 'input', ['value', 'one'], ['myInput', '']);
                 }
                 if (rf1 & RenderFlags.Update) {
-                  tmp = load(2);
+                  const tmp = load(2) as any;
                   textBinding(0, bind(tmp.value));
                 }
               }
