@@ -577,11 +577,14 @@ export function renderEmbeddedTemplate<T>(
  *      <li *ngFor="let item of list"> {{ item }} </li>
  *  </ul>
  *
- * function AppComponentTemplate(rf, ctx) {
- *  // instructions
- *  function ulTemplate(rf, ulCtx, appCtx) {...}
- *  function liTemplate(rf, liCtx, ulCtx, appCtx) {...}
- * }
+ * function ulTemplate(rf, ulCtx, appCtx) {...}
+ * function liTemplate(rf, liCtx, ulCtx, appCtx) {...}
+ *
+ * class AppComponent {...}
+ * AppComponent.ngComponentDef = defineComponent({
+ *   template: function AppComponentTemplate(rf, ctx) {...}
+ * });
+ *
  *
  * The ul view's template must be called with its own context and its declaration
  * parent, AppComponent. The li view's template must be called with its own context, its
@@ -602,32 +605,32 @@ function callTemplateWithContexts<T>(
   const parentView2 = parentView[DECLARATION_VIEW];
 
   // Calling a function with extra arguments has a VM cost, so only call with necessary args
-  if (!parentView2) {
+  if (parentView2 === null) {
     return template(rf, currentContext, parentContext);
   }
 
   const parentContext2 = parentView2[CONTEXT];
   const parentView3 = parentView2[DECLARATION_VIEW];
-  if (!parentView3) {
+  if (parentView3 === null) {
     return template(rf, currentContext, parentContext, parentContext2);
   }
 
   const parentContext3 = parentView3[CONTEXT];
   const parentView4 = parentView3[DECLARATION_VIEW];
-  if (!parentView4) {
+  if (parentView4 === null) {
     return template(rf, currentContext, parentContext, parentContext2, parentContext3);
   }
 
   const parentContext4 = parentView4[CONTEXT];
   const parentView5 = parentView4[DECLARATION_VIEW];
-  if (!parentView5) {
+  if (parentView5 === null) {
     return template(
         rf, currentContext, parentContext, parentContext2, parentContext3, parentContext4);
   }
 
   const parentContext5 = parentView5[CONTEXT];
   const parentView6 = parentView5[DECLARATION_VIEW];
-  if (!parentView6) {
+  if (parentView6 === null) {
     return template(
         rf, currentContext, parentContext, parentContext2, parentContext3, parentContext4,
         parentContext5);
@@ -635,7 +638,7 @@ function callTemplateWithContexts<T>(
 
   const parentContext6 = parentView6[CONTEXT];
   const parentView7 = parentView6[DECLARATION_VIEW];
-  if (!parentView7) {
+  if (parentView7 === null) {
     return template(
         rf, currentContext, parentContext, parentContext2, parentContext3, parentContext4,
         parentContext5, parentContext6);
@@ -643,7 +646,7 @@ function callTemplateWithContexts<T>(
 
   const parentContext7 = parentView7[CONTEXT];
   const parentView8 = parentView7[DECLARATION_VIEW];
-  if (!parentView8) {
+  if (parentView8 === null) {
     return template(
         rf, currentContext, parentContext, parentContext2, parentContext3, parentContext4,
         parentContext5, parentContext6, parentContext7);
@@ -651,7 +654,7 @@ function callTemplateWithContexts<T>(
 
   const parentContext8 = parentView8[CONTEXT];
   const parentView9 = parentView8[DECLARATION_VIEW];
-  if (!parentView9) {
+  if (parentView9 === null) {
     return template(
         rf, currentContext, parentContext, parentContext2, parentContext3, parentContext4,
         parentContext5, parentContext6, parentContext7, parentContext8);
