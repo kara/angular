@@ -23,7 +23,7 @@ export type ComponentTemplate<T> = {
  * Definition of what a template rendering function should look like for an embedded view.
  */
 export type EmbeddedTemplate<T> = {
-  (rf: RenderFlags, ctx: T, ...parentCtx: any[]): void;
+  (rf: RenderFlags, ctx: T): void;
 };
 
 /**

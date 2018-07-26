@@ -7,7 +7,7 @@
  */
 
 import {AttributeMarker, defineComponent, defineDirective} from '../../src/render3/index';
-import {bind, container, containerRefreshEnd, containerRefreshStart, element, elementAttribute, elementClassProp, elementEnd, elementProperty, elementStart, elementStyling, elementStylingApply, embeddedViewEnd, embeddedViewStart, interpolation2, load, reference, text, textBinding} from '../../src/render3/instructions';
+import {bind, container, containerRefreshEnd, containerRefreshStart, element, elementAttribute, elementClassProp, elementEnd, elementProperty, elementStart, elementStyling, elementStylingApply, embeddedViewEnd, embeddedViewStart, getNextContext, interpolation2, load, reference, text, textBinding} from '../../src/render3/instructions';
 import {InitialStylingFlags, RenderFlags} from '../../src/render3/interfaces/definition';
 
 import {NgIf} from './common_with_def';
@@ -355,7 +355,7 @@ describe('exports', () => {
         }
       }, [NgIf]);
 
-      function outerTemplate(rf: RenderFlags, outer: any, app: any) {
+      function outerTemplate(rf: RenderFlags, outer: any) {
         if (rf & RenderFlags.Create) {
           elementStart(0, 'div');
           {
@@ -367,23 +367,24 @@ describe('exports', () => {
           elementEnd();
         }
 
-        const outerInput = reference(1, 1) as any;
         if (rf & RenderFlags.Update) {
+          const outerInput = reference(1, 1) as any;
+          const app = getNextContext();
           textBinding(1, bind(outerInput.value));
           elementProperty(4, 'ngIf', bind(app.inner));
         }
       }
 
-      function innerTemplate(rf: RenderFlags, inner: any, outer: any, app: any) {
+      function innerTemplate(rf: RenderFlags, inner: any) {
         if (rf & RenderFlags.Create) {
           elementStart(0, 'div');
           { text(1); }
           elementEnd();
         }
 
-        const outerInput = reference(2, 1) as any;
-        const innerInput = reference(1, 3) as any;
         if (rf & RenderFlags.Update) {
+          const outerInput = reference(2, 1) as any;
+          const innerInput = reference(1, 3) as any;
           textBinding(1, interpolation2('', outerInput.value, ' - ', innerInput.value, ''));
         }
       }

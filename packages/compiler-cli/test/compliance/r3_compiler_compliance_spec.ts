@@ -541,15 +541,16 @@ describe('compiler compliance', () => {
       const MyComponentDefinition = `
         const $c1$ = ["foo", ""];
         const $c2$ = ["if", ""];
-        function MyComponent_li_Template_2(rf, ctx0, ctx) {
+        function MyComponent_li_Template_2(rf, ctx) {
           if (rf & 1) {
             $r3$.ɵE(0, "li");
             $r3$.ɵT(1);
             $r3$.ɵe();
           }
           if (rf & 2) {
+            const $myComp$ = $r3$.ɵx();
             const $foo$ = $r3$.ɵr(1, 1);
-            $r3$.ɵt(1, $r3$.ɵi2("", ctx.salutation, " ", $foo$, ""));
+            $r3$.ɵt(1, $r3$.ɵi2("", $myComp$.salutation, " ", $foo$, ""));
           }
         }
         …
@@ -1224,20 +1225,20 @@ describe('compiler compliance', () => {
         const $c2$ = ["if", ""];
         const $c3$ = ["baz", ""];
         const $c4$ = ["bar", ""];
-        function MyComponent_div_span_Template_2(rf, ctx1, ctx0, ctx) {
+        function MyComponent_div_span_Template_2(rf, ctx) {
           if (rf & 1) {
             $r3$.ɵE(0, "span");
             $r3$.ɵT(1);
             $r3$.ɵe();
           }
           if (rf & 2) {
-            const $foo$ = $r3$.ɵr(2, 1);
             const $bar$ = $r3$.ɵr(1, 4);
+            const $foo$ = $r3$.ɵr(2, 1);
             const $baz$ = $r3$.ɵr(2, 5);
             $r3$.ɵt(1, $r3$.ɵi3("", $foo$, "-", $bar$, "-", $baz$, ""));
           }
         }
-        function MyComponent_div_Template_3(rf, ctx0, ctx) {
+        function MyComponent_div_Template_3(rf, ctx) {
           if (rf & 1) {
             $r3$.ɵE(0, "div");
             $r3$.ɵT(1);
@@ -1246,8 +1247,8 @@ describe('compiler compliance', () => {
             $r3$.ɵe();
           }
           if (rf & 2) {
-            const $foo$ = $r3$.ɵr(1, 1);
             const $bar$ = $r3$.ɵld(4);
+            const $foo$ = $r3$.ɵr(1, 1);
             $r3$.ɵt(1, $r3$.ɵi2(" ", $foo$, "-", $bar$, " "));
           }
         }
@@ -1452,7 +1453,7 @@ describe('compiler compliance', () => {
 
         const MyComponentDefinition = `
               const $_c0$ = ["for","","forOf",""];
-              function MyComponent__svg_g_Template_1(rf, ctx0, ctx) {
+              function MyComponent__svg_g_Template_1(rf, ctx) {
                 if (rf & 1) {
                   $r3$.ɵNS();
                   $r3$.ɵE(0,"g");
@@ -1525,14 +1526,14 @@ describe('compiler compliance', () => {
 
         const MyComponentDefinition = `
           const $_c0$ = ["for","","forOf",""];
-          function MyComponent_li_Template_1(rf, ctx0, ctx) {
+          function MyComponent_li_Template_1(rf, ctx) {
             if (rf & 1) {
               $r3$.ɵE(0, "li");
               $r3$.ɵT(1);
               $r3$.ɵe();
             }
             if (rf & 2) {
-              const $item$ = ctx0.$implicit;
+              const $item$ = ctx.$implicit;
               $r3$.ɵt(1, $r3$.ɵi1("", $item$.name, ""));
             }
           }
@@ -1602,20 +1603,20 @@ describe('compiler compliance', () => {
 
         const MyComponentDefinition = `
           const $c1$ = ["for", "", "forOf", ""];
-          function MyComponent_li_li_Template_4(rf, ctx1, ctx0, ctx) {
+          function MyComponent_li_li_Template_4(rf, ctx) {
             if (rf & 1) {
               $r3$.ɵE(0, "li");
               $r3$.ɵT(1);
               $r3$.ɵe();
             }
             if (rf & 2) {
-              const $item$ = ctx0.$implicit;
-              const $info$ = ctx1.$implicit;
+              const $info$ = ctx.$implicit;
+              const $item$ = $r3$.ɵx().$implicit;
               $r3$.ɵt(1, $r3$.ɵi2(" ", $item$.name, ": ", $info$.description, " "));
             }
           }
           
-          function MyComponent_li_Template_1(rf, ctx0, ctx) {
+          function MyComponent_li_Template_1(rf, ctx) {
             if (rf & 1) {
               $r3$.ɵE(0, "li");
               $r3$.ɵE(1, "div");
@@ -1627,7 +1628,7 @@ describe('compiler compliance', () => {
               $r3$.ɵe();
             }
             if (rf & 2) {
-              const $item$ = ctx0.$implicit;
+              const $item$ = ctx.$implicit;
               $r3$.ɵt(2, $r3$.ɵi1("", IDENT.name, ""));
               $r3$.ɵp(4, "forOf", $r3$.ɵb(IDENT.infos));
             }

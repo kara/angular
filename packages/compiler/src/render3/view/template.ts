@@ -57,12 +57,13 @@ export class TemplateDefinitionBuilder implements t.Visitor<void>, LocalResolver
   private _bindingContext = 0;
   private _prefixCode: o.Statement[] = [];
   private _creationCode: o.Statement[] = [];
-  private _variableCode: o.Statement[] = [];
-  private _bindingCode: (() => o.Statement)[] = [];
-  private _nestedTemplates: (() => void)[] = [];
+  private _updateCodeFns: (() => o.Statement)[] = [];
+  private _tempVariables: o.Statement[] = [];
+  private _nestedTemplateFns: (() => void)[] = [];
   private _valueConverter: ValueConverter;
   private _unsupported = unsupported;
-  private _bindingScope: BindingScope;
+  private _updateScope: BindingScope;
+  private _creationScope: BindingScope;
 
   // Whether we are inside a translatable element (`<p i18n>... somewhere here ... </p>)
   private _inI18nSection: boolean = false;
@@ -74,20 +75,20 @@ export class TemplateDefinitionBuilder implements t.Visitor<void>, LocalResolver
   private _pureFunctionSlots = 0;
 
   constructor(
-      private constantPool: ConstantPool, private contextParameter: string,
-      parentBindingScope: BindingScope, private level = 0, private contextName: string|null,
-      private templateName: string|null, private viewQueries: R3QueryMetadata[],
-      private directiveMatcher: SelectorMatcher|null, private directives: Set<o.Expression>,
-      private pipeTypeByName: Map<string, o.Expression>, private pipes: Set<o.Expression>,
-      private _namespace: o.ExternalReference) {
+      private constantPool: ConstantPool, parentBindingScope: BindingScope, private level = 0,
+      private contextName: string|null, private templateName: string|null,
+      private viewQueries: R3QueryMetadata[], private directiveMatcher: SelectorMatcher|null,
+      private directives: Set<o.Expression>, private pipeTypeByName: Map<string, o.Expression>,
+      private pipes: Set<o.Expression>, private _namespace: o.ExternalReference) {
     // view queries can take up space in data and allocation happens earlier (in the "viewQuery"
     // function)
     this._dataIndex = viewQueries.length;
-    this._bindingScope =
-        parentBindingScope.nestedScope(level, (lhsVar: o.ReadVarExpr, rhsExpr: o.Expression) => {
-          this._variableCode.push(
-              lhsVar.set(rhsExpr).toDeclStmt(o.INFERRED_TYPE, [o.StmtModifier.Final]));
-        });
+
+    // We must have a nested scope for the creation block because listeners in embedded views
+    // might reference context and component variables in parent scopes.
+    this._creationScope = parentBindingScope.nestedScope(level);
+    this._updateScope = parentBindingScope.nestedScope(level);
+
     this._valueConverter = new ValueConverter(
         constantPool, () => this.allocateDataSlot(),
         (numSlots: number): number => this._pureFunctionSlots += numSlots,
@@ -96,9 +97,27 @@ export class TemplateDefinitionBuilder implements t.Visitor<void>, LocalResolver
           if (pipeType) {
             this.pipes.add(pipeType);
           }
-          this._bindingScope.set(localName, value);
+          this._updateScope.set(this.level, localName, value);
           this._creationCode.push(
               o.importExpr(R3.pipe).callFn([o.literal(slot), o.literal(name)]).toStmt());
+        });
+  }
+
+  registerContextVariables(variable: t.Variable, retrievalScope: BindingScope) {
+    const scopedName = retrievalScope.freshReferenceName();
+    const retrievalLevel = this.level;
+    retrievalScope.set(
+        retrievalLevel, variable.name, o.variable(variable.name + scopedName),
+        (bindingScope: BindingScope) => {
+          const absoluteLevelDiff = bindingScope.level - retrievalLevel;
+          if (absoluteLevelDiff === 0) {
+            // e.g. const $item$ = ctx.$implicit;
+            return o.variable(CONTEXT_NAME).prop(variable.value || IMPLICIT_REFERENCE);
+          } else {
+            // e.g. const $item$ = x(2).$implicit;
+            return generateNextContextExpr(absoluteLevelDiff, bindingScope)
+                .prop(variable.value || IMPLICIT_REFERENCE);
+          }
         });
   }
 
@@ -111,12 +130,9 @@ export class TemplateDefinitionBuilder implements t.Visitor<void>, LocalResolver
 
     // Create variable bindings
     for (const variable of variables) {
-      const variableName = variable.name;
-      const expression =
-          o.variable(this.contextParameter).prop(variable.value || IMPLICIT_REFERENCE);
-      const scopedName = this._bindingScope.freshReferenceName();
       // Add the reference to the local scope.
-      this._bindingScope.set(variableName, o.variable(variableName + scopedName), expression);
+      this.registerContextVariables(variable, this._creationScope);
+      this.registerContextVariables(variable, this._updateScope);
     }
 
     // Output a `ProjectionDef` instruction when some `<ng-content>` are present
@@ -135,26 +151,39 @@ export class TemplateDefinitionBuilder implements t.Visitor<void>, LocalResolver
       this.creationInstruction(null, R3.projectionDef, ...parameters);
     }
 
+    // This is the initial pass through the nodes of this template. In this pass, we
+    // generate all creation mode instructions & queue all update mode instructions for
+    // generation in the second pass. It's necessary to separate the passes to ensure
+    // local refs are defined before resolving bindings.
     t.visitAll(this, nodes);
 
-    const creationCode = this._creationCode.length > 0 ?
-        [renderFlagCheckIfStmt(core.RenderFlags.Create, this._creationCode)] :
-        [];
+    // Generate all the update mode instructions as the second pass (e.g. resolve bindings)
+    const updateStatements = this._updateCodeFns.map((fn: () => o.Statement) => fn());
 
-    const updateCode = this._bindingCode.length > 0 ?
-        [renderFlagCheckIfStmt(core.RenderFlags.Update, this._variableCode.concat(
-          this._variableCode.concat(this._bindingCode.map((fn: () => o.Statement) => fn()))))] :
-        [];
-
+    // To count slots for the reserveSlots() instruction, all bindings must have been visited.
     if (this._pureFunctionSlots > 0) {
       this.creationInstruction(null, R3.reserveSlots, o.literal(this._pureFunctionSlots));
     }
+
+    const creationCode = this._creationCode.length > 0 ?
+        [renderFlagCheckIfStmt(
+            core.RenderFlags.Create,
+            this._creationScope.declareVariables().concat(this._creationCode))] :
+        [];
+
+    //  This must occur after binding resolution so we can generate context instructions that
+    // build on each other. e.g. const row = x().$implicit; const table = x().$implicit();
+    const updateVariables = this._updateScope.declareVariables().concat(this._tempVariables);
+
+    const updateCode = this._updateCodeFns.length > 0 ?
+        [renderFlagCheckIfStmt(core.RenderFlags.Update, updateVariables.concat(updateStatements))] :
+        [];
 
     // Generate maps of placeholder name to node indexes
     // TODO(vicb): This is a WIP, not fully supported yet
     for (const phToNodeIdx of this._phToNodeIdxes) {
       if (Object.keys(phToNodeIdx).length > 0) {
-        const scopedName = this._bindingScope.freshReferenceName();
+        const scopedName = this._updateScope.freshReferenceName();
         const phMap = o.variable(scopedName)
                           .set(mapToExpression(phToNodeIdx, true))
                           .toDeclStmt(o.INFERRED_TYPE, [o.StmtModifier.Final]);
@@ -163,14 +192,11 @@ export class TemplateDefinitionBuilder implements t.Visitor<void>, LocalResolver
       }
     }
 
-    this._nestedTemplates.forEach(buildTemplateFn => buildTemplateFn());
+    this._nestedTemplateFns.forEach(buildTemplateFn => buildTemplateFn());
 
     return o.fn(
-        // i.e. (rf: RenderFlags, ctx0: any, ctx: any)
-        [
-          new o.FnParam(RENDER_FLAGS, o.NUMBER_TYPE), ...this.getNestedContexts(),
-          new o.FnParam(CONTEXT_NAME, null)
-        ],
+        // i.e. (rf: RenderFlags, ctx: any)
+        [new o.FnParam(RENDER_FLAGS, o.NUMBER_TYPE), new o.FnParam(CONTEXT_NAME, null)],
         [
           // Temporary variable declarations for query refresh (i.e. let _t: any;)
           ...this._prefixCode,
@@ -183,7 +209,7 @@ export class TemplateDefinitionBuilder implements t.Visitor<void>, LocalResolver
   }
 
   // LocalResolver
-  getLocal(name: string): o.Expression|null { return this._bindingScope.get(name); }
+  getLocal(name: string): o.Expression|null { return this._updateScope.get(name); }
 
   visitContent(ngContent: t.Content) {
     const slot = this.allocateDataSlot();
@@ -223,18 +249,6 @@ export class TemplateDefinitionBuilder implements t.Visitor<void>, LocalResolver
   addNamespaceInstruction(nsInstruction: o.ExternalReference, element: t.Element) {
     this._namespace = nsInstruction;
     this.creationInstruction(element.sourceSpan, nsInstruction);
-  }
-
-  getNestedContexts(): o.FnParam[] {
-    const nestedContexts = [];
-    let nestingLevel = this.level - 1;
-
-    while (nestingLevel >= 0) {
-      nestedContexts.push(new o.FnParam(`ctx${nestingLevel}`, null));
-      nestingLevel--;
-    }
-
-    return nestedContexts;
   }
 
   visitElement(element: t.Element) {
@@ -426,17 +440,18 @@ export class TemplateDefinitionBuilder implements t.Visitor<void>, LocalResolver
       const references = flatten(element.references.map(reference => {
         const slot = this.allocateDataSlot();
         // Generate the update temporary.
-        const variableName = this._bindingScope.freshReferenceName();
+        const variableName = this._updateScope.freshReferenceName();
         // When the ref's binding is processed, we'll either generate a load() or a reference()
-        // instruction depending on the nesting level of the binding relative to the reference def.
-        const refLevel = this.level;
-        this._bindingScope.set(
-            reference.name, o.variable(variableName), undefined, (bindingLevel: number) => {
-              return bindingLevel === refLevel ?
+        // instruction depending on the nesting level of the binding relative to where the ref
+        // can be retrieved.
+        const retrievalLevel = this.level;
+        this._updateScope.set(
+            retrievalLevel, reference.name, o.variable(variableName),
+            (bindingScope: BindingScope) => {
+              const levelDiff = bindingScope.level - retrievalLevel;
+              return levelDiff === 0 ?
                   o.importExpr(R3.load).callFn([o.literal(slot)]) :
-                  o.importExpr(R3.reference).callFn([
-                    o.literal(bindingLevel - refLevel), o.literal(slot)
-                  ]);
+                  o.importExpr(R3.reference).callFn([o.literal(levelDiff), o.literal(slot)]);
             });
         return [reference.name, reference.value];
       }));
@@ -515,17 +530,11 @@ export class TemplateDefinitionBuilder implements t.Visitor<void>, LocalResolver
         const elName = sanitizeIdentifier(element.name);
         const evName = sanitizeIdentifier(outputAst.name);
         const functionName = `${this.templateName}_${elName}_${evName}_listener`;
-        const localVars: o.Statement[] = [];
-        const bindingScope = this._bindingScope.nestedScope(
-            this.level + 1, (lhsVar: o.ReadVarExpr, rhsExpression: o.Expression) => {
-              localVars.push(
-                  lhsVar.set(rhsExpression).toDeclStmt(o.INFERRED_TYPE, [o.StmtModifier.Final]));
-            });
         const bindingExpr = convertActionBinding(
-            bindingScope, implicit, outputAst.handler, 'b',
+            this._creationScope, implicit, outputAst.handler, 'b',
             () => error('Unexpected interpolation'));
         const handler = o.fn(
-            [new o.FnParam('$event', o.DYNAMIC_TYPE)], [...localVars, ...bindingExpr.render3Stmts],
+            [new o.FnParam('$event', o.DYNAMIC_TYPE)], [...bindingExpr.render3Stmts],
             o.INFERRED_TYPE, null, functionName);
         this.creationInstruction(
             outputAst.sourceSpan, R3.listener, o.literal(outputAst.name), handler);
@@ -668,8 +677,6 @@ export class TemplateDefinitionBuilder implements t.Visitor<void>, LocalResolver
     const templateName =
         contextName ? `${contextName}_Template_${templateIndex}` : `Template_${templateIndex}`;
 
-    const templateContext = `ctx${this.level}`;
-
     const parameters: o.Expression[] = [
       o.literal(templateIndex),
       o.variable(templateName),
@@ -713,15 +720,14 @@ export class TemplateDefinitionBuilder implements t.Visitor<void>, LocalResolver
 
     // Create the template function
     const templateVisitor = new TemplateDefinitionBuilder(
-        this.constantPool, templateContext, this._bindingScope, this.level + 1, contextName,
-        templateName, [], this.directiveMatcher, this.directives, this.pipeTypeByName, this.pipes,
-        this._namespace);
+        this.constantPool, this._updateScope, this.level + 1, contextName, templateName, [],
+        this.directiveMatcher, this.directives, this.pipeTypeByName, this.pipes, this._namespace);
 
     // Nested templates must not be visited until after their parent templates have completed
     // processing, so they are queued here until after the initial pass. Otherwise, we wouldn't
     // be able to support bindings in nested templates to local refs that occur after the
     // template definition. e.g. <div *ngIf="showing"> {{ foo }} </div>  <div #foo></div>
-    this._nestedTemplates.push(() => {
+    this._nestedTemplateFns.push(() => {
       const templateFunctionExpr =
           templateVisitor.buildTemplateFunction(template.children, template.variables);
       this.constantPool.statements.push(templateFunctionExpr.toDeclStmt(templateName, null));
@@ -790,7 +796,7 @@ export class TemplateDefinitionBuilder implements t.Visitor<void>, LocalResolver
   // bindings. e.g. {{ foo }} <div #foo></div>
   private updateInstruction(
       span: ParseSourceSpan|null, reference: o.ExternalReference, paramsFn: () => o.Expression[]) {
-    this._bindingCode.push(() => { return this.instruction(span, reference, paramsFn()); });
+    this._updateCodeFns.push(() => { return this.instruction(span, reference, paramsFn()); });
   }
 
   private convertPropertyBinding(implicit: o.Expression, value: AST, skipBindFn?: boolean):
@@ -800,7 +806,7 @@ export class TemplateDefinitionBuilder implements t.Visitor<void>, LocalResolver
 
     const convertedPropertyBinding = convertPropertyBinding(
         this, implicit, value, this.bindingContext(), BindingForm.TrySimple, interpolationFn);
-    this._variableCode.push(...convertedPropertyBinding.stmts);
+    this._tempVariables.push(...convertedPropertyBinding.stmts);
 
     const valExpr = convertedPropertyBinding.currValExpr;
     return value instanceof Interpolation || skipBindFn ? valExpr :
@@ -888,6 +894,14 @@ function pureFunctionCallInfo(args: o.Expression[]) {
   };
 }
 
+// e.g. const $comp$ = x(2).$implicit
+function generateNextContextExpr(absoluteLevelDiff: number, scope: BindingScope): o.Expression {
+  const relativeLevelDiff = absoluteLevelDiff - scope.currentContextLevel;
+  scope.currentContextLevel = absoluteLevelDiff;
+  return o.importExpr(R3.getNextContext)
+      .callFn(relativeLevelDiff > 1 ? [o.literal(relativeLevelDiff)] : []);
+}
+
 function getLiteralFactory(
     constantPool: ConstantPool, literal: o.LiteralArrayExpr | o.LiteralMapExpr,
     allocateSlots: (numSlots: number) => number): o.Expression {
@@ -921,31 +935,43 @@ function getLiteralFactory(
  */
 export type DeclareLocalVarCallback = (lhsVar: o.ReadVarExpr, rhsExpression: o.Expression) => void;
 
+/** The key used to get the component context in BindingScope's map. */
+const COMPONENT_CONTEXT_KEY = '$$comp_ctx$$';
+
 export class BindingScope implements LocalResolver {
   /**
    * Keeps a map from local variables to their expressions.
    *
-   * This is used when one refers to variable such as: 'let abc = a.b.c`.
+   * This is used when one refers to variable such as: 'let abc = x(2).$implicit`.
    * - key to the map is the string literal `"abc"`.
+   * - value `retrievalLevel` is the level from which this value can be retrieved, which is 2 levels
+   * up in example.
    * - value `lhs` is the left hand side which is an AST representing `abc`.
-   * - value `rhs` is the right hand side which is an AST representing `a.b.c`.
-   * - value `declared` is true if the `declareLocalVarCallback` has been called for this scope
+   * - value `rhs` is a callback that generates the right hand side, which is an AST representing
+   * `x(2).implicit`.
+   * - value `usedInBinding` is true if this value is bound (so we know to generate the local var
+   * declaration)
    * already.
    */
   private map = new Map < string, {
+    retrievalLevel: number;
     lhs: o.ReadVarExpr;
-    rhs: o.Expression|undefined;
-    declared: boolean;
-    rhsCallback?: (level: number) => o.Expression;
+    rhs?: (scope: BindingScope) => o.Expression;
+    usedInBinding: boolean;
   }
   > ();
   private referenceNameIndex = 0;
 
-  static ROOT_SCOPE = new BindingScope().set('$event', o.variable('$event'));
+  /**
+   * The current level for getNextContext(). Used to generate
+   * relative getNextContext() calls that build on each other.
+   * e.g. const row = x().$implicit; const table = x().$implicit;
+   */
+  public currentContextLevel = 0;
 
-  private constructor(
-      private level: number = 0, private parent: BindingScope|null = null,
-      private declareLocalVarCallback: DeclareLocalVarCallback = noop) {}
+  static ROOT_SCOPE = new BindingScope().set(-1, '$event', o.variable('$event'));
+
+  private constructor(public level: number = 0, private parent: BindingScope|null = null) {}
 
   get(name: string): o.Expression|null {
     let current: BindingScope|null = this;
@@ -953,23 +979,30 @@ export class BindingScope implements LocalResolver {
       let value = current.map.get(name);
       if (value != null) {
         if (current !== this) {
-          // make a local copy and reset the `declared` state.
-          value = {lhs: value.lhs, rhs: value.rhs, rhsCallback: value.rhsCallback, declared: false};
+          // make a local copy and reset the `usedInBinding` state
+          value = {
+            retrievalLevel: value.retrievalLevel,
+            lhs: value.lhs,
+            rhs: value.rhs,
+            usedInBinding: false
+          };
           // Cache the value locally.
           this.map.set(name, value);
         }
-        const rhs = value.rhs || value.rhsCallback && value.rhsCallback(this.level);
-        if (rhs && !value.declared) {
-          // if it is first time we are referencing the variable in the scope
-          // then invoke the callback to insert variable declaration.
-          this.declareLocalVarCallback(value.lhs, rhs);
-          value.declared = true;
+
+        if (value.rhs && !value.usedInBinding) {
+          value.usedInBinding = true;
         }
         return value.lhs;
       }
       current = current.parent;
     }
-    return null;
+
+    // If we get to this point, we are looking for a property on the top level component
+    // - If level === 0, we are on the top and don't need to re-declare `ctx`.
+    // - If level > 0, we are in an embedded view. We need to retrieve the top level
+    // component instance and store it in a var.  e.g. const $comp$ = x();
+    return this.level === 0 ? null : this.getComponentProperty(name);
   }
 
   /**
@@ -981,18 +1014,43 @@ export class BindingScope implements LocalResolver {
    * `undefined` for variable that are ambient such as `$event` and which don't have `rhs`
    * declaration.
    */
-  set(name: string, lhs: o.ReadVarExpr, rhs?: o.Expression,
-      rhsCallback?: (level: number) => o.Expression): BindingScope {
+  set(level: number, name: string, lhs: o.ReadVarExpr,
+      rhs?: (scope: BindingScope) => o.Expression): BindingScope {
     !this.map.has(name) ||
         error(`The name ${name} is already defined in scope to be ${this.map.get(name)}`);
-    this.map.set(name, {lhs: lhs, rhs: rhs, declared: false, rhsCallback: rhsCallback});
+    this.map.set(name, {retrievalLevel: level, lhs: lhs, usedInBinding: false, rhs: rhs});
     return this;
   }
 
   getLocal(name: string): (o.Expression|null) { return this.get(name); }
 
-  nestedScope(level: number, declareCallback: DeclareLocalVarCallback): BindingScope {
-    return new BindingScope(level, this, declareCallback);
+  nestedScope(level: number): BindingScope {
+    const newScope = new BindingScope(level, this);
+    if (level > 0) {
+      // const $comp$ = x(2);
+      newScope.set(
+          0, COMPONENT_CONTEXT_KEY, o.variable(CONTEXT_NAME + this.freshReferenceName()),
+          (scope) => generateNextContextExpr(level, scope));
+    }
+    return newScope;
+  }
+
+  getComponentProperty(name: string): o.Expression {
+    const componentValue = this.map.get(COMPONENT_CONTEXT_KEY) !;
+    if (!componentValue.usedInBinding) {
+      componentValue.usedInBinding = true;
+    }
+    return componentValue.lhs.prop(name);
+  }
+
+  declareVariables(): o.Statement[] {
+    return Array.from(this.map.values())
+        .filter(value => value.usedInBinding)
+        .sort((a, b) => b.retrievalLevel - a.retrievalLevel)
+        .map(value => {
+          const rhs = value.rhs !(this);
+          return value.lhs.set(rhs).toDeclStmt(o.INFERRED_TYPE, [o.StmtModifier.Final]);
+        }) as o.Statement[];
   }
 
   freshReferenceName(): string {

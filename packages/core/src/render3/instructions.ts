@@ -166,6 +166,14 @@ export function getCreationMode(): boolean {
 let viewData: LViewData;
 
 /**
+ * The last viewData retrieved by getNextContext().
+ * Allows building getNextContext() calls.
+ *
+ * e.g. const outer = x().$implicit; const inner = x().$implicit;
+ */
+let contextViewData: LViewData|null = null;
+
+/**
  * An array of directive instances in the current view.
  *
  * These must be stored separately from LNodes because their presence is
@@ -223,7 +231,7 @@ export function enterView(newView: LViewData, host: LElementNode | LViewNode | n
     isParent = true;
   }
 
-  viewData = newView;
+  viewData = contextViewData = newView;
   currentQueries = newView && newView[QUERIES];
 
   return oldView;
@@ -547,7 +555,7 @@ export function renderEmbeddedTemplate<T>(
 
       oldView = enterView(viewNode.data !, viewNode);
       namespaceHTML();
-      callTemplateWithContexts(rf, context, tView.template !, viewNode.data ![DECLARATION_VIEW] !);
+      tView.template !(rf, context);
       if (rf & RenderFlags.Update) {
         refreshDescendantViews();
       } else {
@@ -566,113 +574,15 @@ export function renderEmbeddedTemplate<T>(
 }
 
 /**
- * This function calls the template function of a dynamically created view with
- * all of its declaration parent contexts (up the view tree) until it reaches the
- * component boundary.
+ * Retrieves a context at the level specified. Will get the next level up
+ * if not specified.
  *
- * Example:
- *
- * AppComponent template:
- *  <ul *ngFor="let list of lists">
- *      <li *ngFor="let item of list"> {{ item }} </li>
- *  </ul>
- *
- * function ulTemplate(rf, ulCtx, appCtx) {...}
- * function liTemplate(rf, liCtx, ulCtx, appCtx) {...}
- *
- * class AppComponent {...}
- * AppComponent.ngComponentDef = defineComponent({
- *   template: function AppComponentTemplate(rf, ctx) {...}
- * });
- *
- *
- * The ul view's template must be called with its own context and its declaration
- * parent, AppComponent. The li view's template must be called with its own context, its
- * parent (the ul), and the ul's parent (AppComponent).
- *
- * Note that a declaration parent is NOT always the same as the insertion parent. Templates
- * can be declared in different views than they are used.
- *
- * @param rf The RenderFlags for this template invocation
- * @param currentContext The context for this template
- * @param template The template function to call
- * @param parentView The declaration view of the dynamic view
+ * @param level The relative level of the view from which to grab context
+ * @returns context
  */
-function callTemplateWithContexts<T>(
-    rf: RenderFlags, currentContext: T, template: EmbeddedTemplate<T>,
-    parentView: LViewData): void {
-  const parentContext = parentView[CONTEXT];
-  const parentView2 = parentView[DECLARATION_VIEW];
-
-  // Calling a function with extra arguments has a VM cost, so only call with necessary args
-  if (parentView2 === null) {
-    return template(rf, currentContext, parentContext);
-  }
-
-  const parentContext2 = parentView2[CONTEXT];
-  const parentView3 = parentView2[DECLARATION_VIEW];
-  if (parentView3 === null) {
-    return template(rf, currentContext, parentContext, parentContext2);
-  }
-
-  const parentContext3 = parentView3[CONTEXT];
-  const parentView4 = parentView3[DECLARATION_VIEW];
-  if (parentView4 === null) {
-    return template(rf, currentContext, parentContext, parentContext2, parentContext3);
-  }
-
-  const parentContext4 = parentView4[CONTEXT];
-  const parentView5 = parentView4[DECLARATION_VIEW];
-  if (parentView5 === null) {
-    return template(
-        rf, currentContext, parentContext, parentContext2, parentContext3, parentContext4);
-  }
-
-  const parentContext5 = parentView5[CONTEXT];
-  const parentView6 = parentView5[DECLARATION_VIEW];
-  if (parentView6 === null) {
-    return template(
-        rf, currentContext, parentContext, parentContext2, parentContext3, parentContext4,
-        parentContext5);
-  }
-
-  const parentContext6 = parentView6[CONTEXT];
-  const parentView7 = parentView6[DECLARATION_VIEW];
-  if (parentView7 === null) {
-    return template(
-        rf, currentContext, parentContext, parentContext2, parentContext3, parentContext4,
-        parentContext5, parentContext6);
-  }
-
-  const parentContext7 = parentView7[CONTEXT];
-  const parentView8 = parentView7[DECLARATION_VIEW];
-  if (parentView8 === null) {
-    return template(
-        rf, currentContext, parentContext, parentContext2, parentContext3, parentContext4,
-        parentContext5, parentContext6, parentContext7);
-  }
-
-  const parentContext8 = parentView8[CONTEXT];
-  const parentView9 = parentView8[DECLARATION_VIEW];
-  if (parentView9 === null) {
-    return template(
-        rf, currentContext, parentContext, parentContext2, parentContext3, parentContext4,
-        parentContext5, parentContext6, parentContext7, parentContext8);
-  }
-
-  // We support up to 8 nesting levels in embedded views before we give up and call apply()
-  const templateArgs = [
-    rf, currentContext, parentContext, parentContext2, parentContext3, parentContext4,
-    parentContext5, parentContext6, parentContext7, parentContext8, parentView9[CONTEXT]
-  ];
-
-  let currentDeclarationView: LViewData|null = parentView9[DECLARATION_VIEW];
-  while (currentDeclarationView) {
-    templateArgs.push(currentDeclarationView[CONTEXT]);
-    currentDeclarationView = currentDeclarationView[DECLARATION_VIEW] !;
-  }
-
-  template.apply(null, templateArgs);
+export function getNextContext(level: number = 1): any {
+  contextViewData = walkUpViews(level, contextViewData !);
+  return contextViewData[CONTEXT];
 }
 
 export function renderComponentOrTemplate<T>(
@@ -2655,7 +2565,10 @@ export function store<T>(index: number, value: T): void {
 
 /** Retrieves a value from an LViewData at the given nesting level. */
 export function reference<T>(nestingLevel: number, index: number) {
-  let currentView = viewData;
+  return loadInternal<T>(index, walkUpViews(nestingLevel, viewData));
+}
+
+function walkUpViews(nestingLevel: number, currentView: LViewData): LViewData {
   while (nestingLevel > 0) {
     ngDevMode && assertDefined(
                      currentView[DECLARATION_VIEW],
@@ -2663,8 +2576,7 @@ export function reference<T>(nestingLevel: number, index: number) {
     currentView = currentView[DECLARATION_VIEW] !;
     nestingLevel--;
   }
-
-  return loadInternal<T>(index, currentView);
+  return currentView;
 }
 
 /** Retrieves a value from the `directives` array. */

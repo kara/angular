@@ -49,6 +49,8 @@ export {
   containerRefreshStart as cR,
   containerRefreshEnd as cr,
 
+  getNextContext as x,
+
   element as Ee,
   elementAttribute as a,
   elementClassProp as cp,
