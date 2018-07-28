@@ -57,13 +57,33 @@ export class TemplateDefinitionBuilder implements t.Visitor<void>, LocalResolver
   private _bindingContext = 0;
   private _prefixCode: o.Statement[] = [];
   private _creationCode: o.Statement[] = [];
+  /**
+   * List of callbacks to generate update mode instructions. We store them here as we process
+   * the template so bindings are resolved only once all nodes have been visited. This ensures
+   * all local refs and context variables are available for matching.
+   */
   private _updateCodeFns: (() => o.Statement)[] = [];
+  /** Temporary variable declarations generated from visiting pipes, literals, etc. */
   private _tempVariables: o.Statement[] = [];
+  /**
+   * List of callbacks to build nested templates. Nested templates must not be visited until
+   * after the parent template has finished visiting all of its nodes. This ensures that all
+   * local ref bindings in nested templates are able to find local ref values if the refs
+   * are defined after the template declaration.
+   */
   private _nestedTemplateFns: (() => void)[] = [];
+  /**
+   * This scope contains local variables declared in the update mode block of the template.
+   * (e.g. refs and context vars in bindings)
+   */
+  private _updateScope: BindingScope;
+  /**
+   * This scope contains local variables declared in the creation mode block of the template
+   * (e.g. refs and context vars in listeners)
+   */
+  private _creationScope: BindingScope;
   private _valueConverter: ValueConverter;
   private _unsupported = unsupported;
-  private _updateScope: BindingScope;
-  private _creationScope: BindingScope;
 
   // Whether we are inside a translatable element (`<p i18n>... somewhere here ... </p>)
   private _inI18nSection: boolean = false;
@@ -989,7 +1009,7 @@ export class BindingScope implements LocalResolver {
           // Cache the value locally.
           this.map.set(name, value);
           // Possibly generate a shared context var
-          this.checkForSharedContextVar(value);
+          this.maybeGenerateSharedContextVar(value);
         }
 
         if (value.declareLocalCallback && !value.declare) {
@@ -1044,7 +1064,7 @@ export class BindingScope implements LocalResolver {
     return sharedCtxObj && sharedCtxObj.declare ? sharedCtxObj.lhs : null;
   }
 
-  checkForSharedContextVar(value: BindingData) {
+  maybeGenerateSharedContextVar(value: BindingData) {
     if (value.priority === DeclarationPriority.CONTEXT) {
       const sharedCtxObj = this.map.get(SHARED_CONTEXT_KEY + value.retrievalLevel);
       if (sharedCtxObj) {
