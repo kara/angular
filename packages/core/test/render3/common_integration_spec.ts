@@ -10,7 +10,7 @@ import {NgForOfContext} from '@angular/common';
 
 import {getOrCreateNodeInjectorForNode, getOrCreateTemplateRef} from '../../src/render3/di';
 import {AttributeMarker, defineComponent} from '../../src/render3/index';
-import {bind, container, elementEnd, elementProperty, elementStart, getNextContext, interpolation1, interpolation2, interpolation3, interpolationV, listener, load, text, textBinding} from '../../src/render3/instructions';
+import {bind, container, elementEnd, elementProperty, elementStart, interpolation1, interpolation2, interpolation3, interpolationV, listener, load, nextContext, text, textBinding} from '../../src/render3/instructions';
 import {RenderFlags} from '../../src/render3/interfaces/definition';
 
 import {NgForOf, NgIf, NgTemplateOutlet} from './common_with_def';
@@ -256,8 +256,8 @@ describe('@angular/common integration', () => {
         }
         if (rf & RenderFlags.Update) {
           const cell = ctx.$implicit;
-          const row = getNextContext().$implicit as any;
-          const app = getNextContext() as any;
+          const row = nextContext().$implicit as any;
+          const app = nextContext() as any;
           textBinding(1, interpolation3('', cell, ' - ', row.value, ' - ', app.items.length, ''));
         }
       }
@@ -337,8 +337,8 @@ describe('@angular/common integration', () => {
 
       function pTemplate(rf: RenderFlags, ctx: any) {
         if (rf & RenderFlags.Create) {
-          const row = getNextContext().$implicit as any;
-          const app = getNextContext();
+          const row = nextContext().$implicit as any;
+          const app = nextContext();
           elementStart(0, 'p');
           {
             elementStart(1, 'span');
@@ -351,8 +351,8 @@ describe('@angular/common integration', () => {
           elementEnd();
         }
         if (rf & RenderFlags.Update) {
-          const row = getNextContext().$implicit as any;
-          const app = getNextContext() as any;
+          const row = nextContext().$implicit as any;
+          const app = nextContext() as any;
           textBinding(2, interpolation2('', row.value, ' - ', app.name, ''));
         }
       }
@@ -442,8 +442,8 @@ describe('@angular/common integration', () => {
           elementEnd();
         }
         if (rf & RenderFlags.Update) {
-          const cell = getNextContext().$implicit as any;
-          const app = getNextContext(2) as any;
+          const cell = nextContext().$implicit as any;
+          const app = nextContext(2) as any;
           textBinding(1, interpolation2('', cell.value, ' - ', app.name, ''));
         }
       }
@@ -682,15 +682,15 @@ describe('@angular/common integration', () => {
 
         if (rf & RenderFlags.Update) {
           const value = ctx.$implicit;
-          const item7 = getNextContext().$implicit;
-          const item6 = getNextContext().$implicit;
-          const item5 = getNextContext().$implicit;
-          const item4 = getNextContext().$implicit;
-          const item3 = getNextContext().$implicit;
-          const item2 = getNextContext().$implicit;
-          const item1 = getNextContext().$implicit;
-          const item0 = getNextContext().$implicit;
-          const myApp = getNextContext();
+          const item7 = nextContext().$implicit;
+          const item6 = nextContext().$implicit;
+          const item5 = nextContext().$implicit;
+          const item4 = nextContext().$implicit;
+          const item3 = nextContext().$implicit;
+          const item2 = nextContext().$implicit;
+          const item1 = nextContext().$implicit;
+          const item0 = nextContext().$implicit;
+          const myApp = nextContext();
           textBinding(1, interpolationV([
                         '',  value,       '.', item7.value, '.', item6.value, '.', item5.value,
                         '.', item4.value, '.', item3.value, '.', item2.value, '.', item1.value,
@@ -752,7 +752,7 @@ describe('@angular/common integration', () => {
           elementEnd();
         }
         if (rf & RenderFlags.Update) {
-          const myApp = getNextContext();
+          const myApp = nextContext();
           textBinding(1, bind(myApp.valueOne));
         }
       }
@@ -764,7 +764,7 @@ describe('@angular/common integration', () => {
           elementEnd();
         }
         if (rf & RenderFlags.Update) {
-          const myApp = getNextContext();
+          const myApp = nextContext();
           textBinding(1, bind(myApp.valueTwo));
         }
       }
@@ -818,7 +818,7 @@ describe('@angular/common integration', () => {
           elementEnd();
         }
         if (rf & RenderFlags.Update) {
-          const app = getNextContext();
+          const app = nextContext();
           elementProperty(1, 'ngIf', bind(app.outerShowing));
         }
       }
@@ -830,7 +830,7 @@ describe('@angular/common integration', () => {
           elementEnd();
         }
         if (rf & RenderFlags.Update) {
-          const app = getNextContext(2);
+          const app = nextContext(2);
           elementProperty(1, 'ngIf', bind(app.innerShowing));
         }
       }
@@ -842,7 +842,7 @@ describe('@angular/common integration', () => {
           elementEnd();
         }
         if (rf & RenderFlags.Update) {
-          const app = getNextContext(3);
+          const app = nextContext(3);
           textBinding(1, bind(app.name));
         }
       }

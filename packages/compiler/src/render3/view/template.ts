@@ -84,8 +84,7 @@ export class TemplateDefinitionBuilder implements t.Visitor<void>, LocalResolver
     // function)
     this._dataIndex = viewQueries.length;
 
-    // We must have a nested scope for the creation block because listeners in embedded views
-    // might reference context and component variables in parent scopes.
+    // TODO(kara): generate restore instruction in listener to replace creation scope
     this._creationScope = parentBindingScope.nestedScope(level);
     this._updateScope = parentBindingScope.nestedScope(level);
 
@@ -106,18 +105,21 @@ export class TemplateDefinitionBuilder implements t.Visitor<void>, LocalResolver
   registerContextVariables(variable: t.Variable, retrievalScope: BindingScope) {
     const scopedName = retrievalScope.freshReferenceName();
     const retrievalLevel = this.level;
+    const lhs = o.variable(variable.name + scopedName);
     retrievalScope.set(
-        retrievalLevel, variable.name, o.variable(variable.name + scopedName),
-        (bindingScope: BindingScope) => {
-          const absoluteLevelDiff = bindingScope.level - retrievalLevel;
-          if (absoluteLevelDiff === 0) {
-            // e.g. const $item$ = ctx.$implicit;
-            return o.variable(CONTEXT_NAME).prop(variable.value || IMPLICIT_REFERENCE);
+        retrievalLevel, variable.name, lhs, DeclarationPriority.CONTEXT,
+        (scope: BindingScope, relativeLevel: number) => {
+          let rhs: o.Expression;
+          if (scope.bindingLevel === retrievalLevel) {
+            // e.g. ctx
+            rhs = o.variable(CONTEXT_NAME);
           } else {
-            // e.g. const $item$ = x(2).$implicit;
-            return generateNextContextExpr(absoluteLevelDiff, bindingScope)
-                .prop(variable.value || IMPLICIT_REFERENCE);
+            const sharedCtxVar = scope.getSharedContextName(retrievalLevel);
+            // e.g. ctx_r0   OR  x(2);
+            rhs = sharedCtxVar ? sharedCtxVar : generateNextContextExpr(relativeLevel);
           }
+          // e.g. const $item$ = x(2).$implicit;
+          return [lhs.set(rhs.prop(variable.value || IMPLICIT_REFERENCE)).toConstDecl()];
         });
   }
 
@@ -168,12 +170,12 @@ export class TemplateDefinitionBuilder implements t.Visitor<void>, LocalResolver
     const creationCode = this._creationCode.length > 0 ?
         [renderFlagCheckIfStmt(
             core.RenderFlags.Create,
-            this._creationScope.declareVariables().concat(this._creationCode))] :
+            this._creationScope.variableDeclarations().concat(this._creationCode))] :
         [];
 
     //  This must occur after binding resolution so we can generate context instructions that
     // build on each other. e.g. const row = x().$implicit; const table = x().$implicit();
-    const updateVariables = this._updateScope.declareVariables().concat(this._tempVariables);
+    const updateVariables = this._updateScope.variableDeclarations().concat(this._tempVariables);
 
     const updateCode = this._updateCodeFns.length > 0 ?
         [renderFlagCheckIfStmt(core.RenderFlags.Update, updateVariables.concat(updateStatements))] :
@@ -184,9 +186,7 @@ export class TemplateDefinitionBuilder implements t.Visitor<void>, LocalResolver
     for (const phToNodeIdx of this._phToNodeIdxes) {
       if (Object.keys(phToNodeIdx).length > 0) {
         const scopedName = this._updateScope.freshReferenceName();
-        const phMap = o.variable(scopedName)
-                          .set(mapToExpression(phToNodeIdx, true))
-                          .toDeclStmt(o.INFERRED_TYPE, [o.StmtModifier.Final]);
+        const phMap = o.variable(scopedName).set(mapToExpression(phToNodeIdx, true)).toConstDecl();
 
         this._prefixCode.push(phMap);
       }
@@ -441,17 +441,18 @@ export class TemplateDefinitionBuilder implements t.Visitor<void>, LocalResolver
         const slot = this.allocateDataSlot();
         // Generate the update temporary.
         const variableName = this._updateScope.freshReferenceName();
-        // When the ref's binding is processed, we'll either generate a load() or a reference()
-        // instruction depending on the nesting level of the binding relative to where the ref
-        // can be retrieved.
         const retrievalLevel = this.level;
+        const lhs = o.variable(variableName);
         this._updateScope.set(
-            retrievalLevel, reference.name, o.variable(variableName),
-            (bindingScope: BindingScope) => {
-              const levelDiff = bindingScope.level - retrievalLevel;
-              return levelDiff === 0 ?
-                  o.importExpr(R3.load).callFn([o.literal(slot)]) :
-                  o.importExpr(R3.reference).callFn([o.literal(levelDiff), o.literal(slot)]);
+            retrievalLevel, reference.name, lhs, DeclarationPriority.DEFAULT,
+            (scope: BindingScope, relativeLevel: number) => {
+              // e.g. x(2);
+              const nextContextStmt =
+                  relativeLevel > 0 ? [generateNextContextExpr(relativeLevel).toStmt()] : [];
+
+              // e.g. const $foo$ = r(1);
+              const refExpr = lhs.set(o.importExpr(R3.reference).callFn([o.literal(slot)]));
+              return nextContextStmt.concat(refExpr.toConstDecl());
             });
         return [reference.name, reference.value];
       }));
@@ -894,11 +895,9 @@ function pureFunctionCallInfo(args: o.Expression[]) {
   };
 }
 
-// e.g. const $comp$ = x(2).$implicit
-function generateNextContextExpr(absoluteLevelDiff: number, scope: BindingScope): o.Expression {
-  const relativeLevelDiff = absoluteLevelDiff - scope.currentContextLevel;
-  scope.currentContextLevel = absoluteLevelDiff;
-  return o.importExpr(R3.getNextContext)
+// e.g. x(2);
+function generateNextContextExpr(relativeLevelDiff: number): o.Expression {
+  return o.importExpr(R3.nextContext)
       .callFn(relativeLevelDiff > 1 ? [o.literal(relativeLevelDiff)] : []);
 }
 
@@ -933,45 +932,44 @@ function getLiteralFactory(
  *
  * It is expected that the function creates the `const localName = expression`; statement.
  */
-export type DeclareLocalVarCallback = (lhsVar: o.ReadVarExpr, rhsExpression: o.Expression) => void;
+export type DeclareLocalVarCallback = (scope: BindingScope, relativeLevel: number) => o.Statement[];
 
-/** The key used to get the component context in BindingScope's map. */
-const COMPONENT_CONTEXT_KEY = '$$comp_ctx$$';
+/** The prefix used to get a shared context in BindingScope's map. */
+const SHARED_CONTEXT_KEY = '$$shared_ctx$$';
+
+/**
+ * This is used when one refers to variable such as: 'let abc = x(2).$implicit`.
+ * - key to the map is the string literal `"abc"`.
+ * - value `retrievalLevel` is the level from which this value can be retrieved, which is 2 levels
+ * up in example.
+ * - value `lhs` is the left hand side which is an AST representing `abc`.
+ * - value `declareLocalCallback` is a callback that is invoked when declaring the local.
+ * - value `declare` is true if this value needs to be declared.
+ * - value `priority` dictates the sorting priority of this var declaration compared
+ * to other var declarations on the same retrieval level. For example, if there is a
+ * context variable and a local ref accessing the same parent view, the context var
+ * declaration should always come before the local ref declaration.
+ */
+type BindingData = {
+  retrievalLevel: number; lhs: o.ReadVarExpr; declareLocalCallback?: DeclareLocalVarCallback;
+  declare: boolean;
+  priority: number;
+};
+
+/**
+ * The sorting priority of a local variable declaration. Higher numbers
+ * mean the declaration will appear first in the generated code.
+ */
+const enum DeclarationPriority { DEFAULT = 0, CONTEXT = 1, SHARED_CONTEXT = 2 }
 
 export class BindingScope implements LocalResolver {
-  /**
-   * Keeps a map from local variables to their expressions.
-   *
-   * This is used when one refers to variable such as: 'let abc = x(2).$implicit`.
-   * - key to the map is the string literal `"abc"`.
-   * - value `retrievalLevel` is the level from which this value can be retrieved, which is 2 levels
-   * up in example.
-   * - value `lhs` is the left hand side which is an AST representing `abc`.
-   * - value `rhs` is a callback that generates the right hand side, which is an AST representing
-   * `x(2).implicit`.
-   * - value `usedInBinding` is true if this value is bound (so we know to generate the local var
-   * declaration)
-   * already.
-   */
-  private map = new Map < string, {
-    retrievalLevel: number;
-    lhs: o.ReadVarExpr;
-    rhs?: (scope: BindingScope) => o.Expression;
-    usedInBinding: boolean;
-  }
-  > ();
+  /** Keeps a map from local variables to their BindingData. */
+  private map = new Map<string, BindingData>();
   private referenceNameIndex = 0;
-
-  /**
-   * The current level for getNextContext(). Used to generate
-   * relative getNextContext() calls that build on each other.
-   * e.g. const row = x().$implicit; const table = x().$implicit;
-   */
-  public currentContextLevel = 0;
 
   static ROOT_SCOPE = new BindingScope().set(-1, '$event', o.variable('$event'));
 
-  private constructor(public level: number = 0, private parent: BindingScope|null = null) {}
+  private constructor(public bindingLevel: number = 0, private parent: BindingScope|null = null) {}
 
   get(name: string): o.Expression|null {
     let current: BindingScope|null = this;
@@ -979,19 +977,23 @@ export class BindingScope implements LocalResolver {
       let value = current.map.get(name);
       if (value != null) {
         if (current !== this) {
-          // make a local copy and reset the `usedInBinding` state
+          // make a local copy and reset the `declare` state
           value = {
             retrievalLevel: value.retrievalLevel,
             lhs: value.lhs,
-            rhs: value.rhs,
-            usedInBinding: false
+            declareLocalCallback: value.declareLocalCallback,
+            declare: false,
+            priority: value.priority
           };
+
           // Cache the value locally.
           this.map.set(name, value);
+          // Possibly generate a shared context var
+          this.checkForSharedContextVar(value);
         }
 
-        if (value.rhs && !value.usedInBinding) {
-          value.usedInBinding = true;
+        if (value.declareLocalCallback && !value.declare) {
+          value.declare = true;
         }
         return value.lhs;
       }
@@ -1000,25 +1002,32 @@ export class BindingScope implements LocalResolver {
 
     // If we get to this point, we are looking for a property on the top level component
     // - If level === 0, we are on the top and don't need to re-declare `ctx`.
-    // - If level > 0, we are in an embedded view. We need to retrieve the top level
-    // component instance and store it in a var.  e.g. const $comp$ = x();
-    return this.level === 0 ? null : this.getComponentProperty(name);
+    // - If level > 0, we are in an embedded view. We need to retrieve the name of the
+    // local var we used to store the component context, e.g. const $comp$ = x();
+    return this.bindingLevel === 0 ? null : this.getComponentProperty(name);
   }
 
   /**
    * Create a local variable for later reference.
    *
+   * @param retrievalLevel The level from which this value can be retrieved
    * @param name Name of the variable.
    * @param lhs AST representing the left hand side of the `let lhs = rhs;`.
-   * @param rhs AST representing the right hand side of the `let lhs = rhs;`. The `rhs` can be
-   * `undefined` for variable that are ambient such as `$event` and which don't have `rhs`
-   * declaration.
+   * @param priority The sorting priority of this var
+   * @param declareLocalCallback The callback to invoke when declaring this local var
    */
-  set(level: number, name: string, lhs: o.ReadVarExpr,
-      rhs?: (scope: BindingScope) => o.Expression): BindingScope {
+  set(retrievalLevel: number, name: string, lhs: o.ReadVarExpr,
+      priority: number = DeclarationPriority.DEFAULT,
+      declareLocalCallback?: DeclareLocalVarCallback): BindingScope {
     !this.map.has(name) ||
         error(`The name ${name} is already defined in scope to be ${this.map.get(name)}`);
-    this.map.set(name, {retrievalLevel: level, lhs: lhs, usedInBinding: false, rhs: rhs});
+    this.map.set(name, {
+      retrievalLevel: retrievalLevel,
+      lhs: lhs,
+      declare: false,
+      declareLocalCallback: declareLocalCallback,
+      priority: priority
+    });
     return this;
   }
 
@@ -1026,32 +1035,59 @@ export class BindingScope implements LocalResolver {
 
   nestedScope(level: number): BindingScope {
     const newScope = new BindingScope(level, this);
-    if (level > 0) {
-      // const $comp$ = x(2);
-      newScope.set(
-          0, COMPONENT_CONTEXT_KEY, o.variable(CONTEXT_NAME + this.freshReferenceName()),
-          (scope) => generateNextContextExpr(level, scope));
-    }
+    if (level > 0) newScope.generateSharedContextVar(0);
     return newScope;
   }
 
-  getComponentProperty(name: string): o.Expression {
-    const componentValue = this.map.get(COMPONENT_CONTEXT_KEY) !;
-    if (!componentValue.usedInBinding) {
-      componentValue.usedInBinding = true;
+  getSharedContextName(retrievalLevel: number): o.ReadVarExpr|null {
+    const sharedCtxObj = this.map.get(SHARED_CONTEXT_KEY + retrievalLevel);
+    return sharedCtxObj && sharedCtxObj.declare ? sharedCtxObj.lhs : null;
+  }
+
+  checkForSharedContextVar(value: BindingData) {
+    if (value.priority === DeclarationPriority.CONTEXT) {
+      const sharedCtxObj = this.map.get(SHARED_CONTEXT_KEY + value.retrievalLevel);
+      if (sharedCtxObj) {
+        sharedCtxObj.declare = true;
+      } else {
+        this.generateSharedContextVar(value.retrievalLevel);
+      }
     }
+  }
+
+  generateSharedContextVar(retrievalLevel: number) {
+    const lhs = o.variable(CONTEXT_NAME + this.freshReferenceName());
+    this.map.set(SHARED_CONTEXT_KEY + retrievalLevel, {
+      retrievalLevel: retrievalLevel,
+      lhs: lhs,
+      declareLocalCallback: (scope: BindingScope, relativeLevel: number) => {
+        // const ctx_r0 = x(2);
+        return [lhs.set(generateNextContextExpr(relativeLevel)).toConstDecl()];
+      },
+      declare: false,
+      priority: DeclarationPriority.SHARED_CONTEXT
+    });
+  }
+
+  getComponentProperty(name: string): o.Expression {
+    const componentValue = this.map.get(SHARED_CONTEXT_KEY + 0) !;
+    componentValue.declare = true;
     return componentValue.lhs.prop(name);
   }
 
-  declareVariables(): o.Statement[] {
+  variableDeclarations(): o.Statement[] {
+    let currentContextLevel = 0;
     return Array.from(this.map.values())
-        .filter(value => value.usedInBinding)
-        .sort((a, b) => b.retrievalLevel - a.retrievalLevel)
-        .map(value => {
-          const rhs = value.rhs !(this);
-          return value.lhs.set(rhs).toDeclStmt(o.INFERRED_TYPE, [o.StmtModifier.Final]);
-        }) as o.Statement[];
+        .filter(value => value.declare)
+        .sort((a, b) => b.retrievalLevel - a.retrievalLevel || b.priority - a.priority)
+        .reduce((stmts: o.Statement[], value: BindingData) => {
+          const levelDiff = this.bindingLevel - value.retrievalLevel;
+          const currStmts = value.declareLocalCallback !(this, levelDiff - currentContextLevel);
+          currentContextLevel = levelDiff;
+          return stmts.concat(currStmts);
+        }, []) as o.Statement[];
   }
+
 
   freshReferenceName(): string {
     let current: BindingScope = this;

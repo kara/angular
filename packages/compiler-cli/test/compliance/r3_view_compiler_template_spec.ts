@@ -167,6 +167,75 @@ describe('compiler compliance: template', () => {
     expectEmit(result.source, template, 'Incorrect template');
   });
 
+  it('should support ngFor context variables in parent views', () => {
+    const files = {
+      app: {
+        'spec.ts': `
+              import {Component, NgModule} from '@angular/core';
+              import {CommonModule} from '@angular/common';
+
+              @Component({
+                selector: 'my-component',
+                template: \`
+                  <div *ngFor="let item of items; index as i">
+                      <span *ngIf="showing">
+                        {{ i }} - {{ item }}
+                      </span>
+                  </div>\`
+              })
+              export class MyComponent {}
+
+              @NgModule({declarations: [MyComponent], imports: [CommonModule]})
+              export class MyModule {}
+          `
+      }
+    };
+
+    const template = `
+      const $c0$ = ["ngFor","","ngForOf",""];
+      const $c1$ = ["ngIf",""];
+      
+      function MyComponent_div_span_Template_1(rf, ctx) {
+        if (rf & 1) {
+          $i0$.ɵE(0, "span");
+          $i0$.ɵT(1);
+          $i0$.ɵe();
+        }
+        if (rf & 2) {
+          const $div$ = $i0$.ɵx();
+          const $i$ = $div$.index;
+          const $item$ = $div$.$implicit;
+          $i0$.ɵt(1, $i0$.ɵi2(" ", $i$, " - ", $item$, " "));
+        }
+      }
+      
+      function MyComponent_div_Template_0(rf, ctx) {
+        if (rf & 1) {
+          $i0$.ɵE(0, "div");
+          $i0$.ɵC(1, MyComponent_div_span_Template_1, null, $c1$);
+          $i0$.ɵe();
+        }
+        if (rf & 2) {
+          const $app$ = $i0$.ɵx();
+          $i0$.ɵp(1, "ngIf", $i0$.ɵb($app$.showing));
+        }
+      }
+      
+      // ...
+      template:function MyComponent_Template(rf, ctx){
+        if (rf & 1) {
+          $i0$.ɵC(0, MyComponent_div_Template_0, null, $c0$);
+        }
+        if (rf & 2) {
+          $i0$.ɵp(0, "ngForOf", $i0$.ɵb(ctx.items));
+        }
+      }`;
+
+    const result = compile(files, angularFiles);
+
+    expectEmit(result.source, template, 'Incorrect template');
+  });
+
   it('should correctly skip contexts as needed', () => {
     const files = {
       app: {

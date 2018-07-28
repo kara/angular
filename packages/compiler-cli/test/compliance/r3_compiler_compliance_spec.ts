@@ -549,7 +549,7 @@ describe('compiler compliance', () => {
           }
           if (rf & 2) {
             const $myComp$ = $r3$.ɵx();
-            const $foo$ = $r3$.ɵr(1, 1);
+            const $foo$ = $r3$.ɵr(1);
             $r3$.ɵt(1, $r3$.ɵi2("", $myComp$.salutation, " ", $foo$, ""));
           }
         }
@@ -1175,7 +1175,7 @@ describe('compiler compliance', () => {
               $r3$.ɵT(2);
             }
             if (rf & 2) {
-              const $user$ = $r3$.ɵld(1);
+              const $user$ = $r3$.ɵr(1);
               $r3$.ɵt(2, $r3$.ɵi1("Hello ", $user$.value, "!"));
             }
           }
@@ -1232,9 +1232,11 @@ describe('compiler compliance', () => {
             $r3$.ɵe();
           }
           if (rf & 2) {
-            const $bar$ = $r3$.ɵr(1, 4);
-            const $foo$ = $r3$.ɵr(2, 1);
-            const $baz$ = $r3$.ɵr(2, 5);
+            $r3$.ɵx();
+            const $bar$ = $r3$.ɵr(4);
+            $r3$.ɵx();
+            const $foo$ = $r3$.ɵr(1);
+            const $baz$ = $r3$.ɵr(5);
             $r3$.ɵt(1, $r3$.ɵi3("", $foo$, "-", $bar$, "-", $baz$, ""));
           }
         }
@@ -1247,8 +1249,9 @@ describe('compiler compliance', () => {
             $r3$.ɵe();
           }
           if (rf & 2) {
-            const $bar$ = $r3$.ɵld(4);
-            const $foo$ = $r3$.ɵr(1, 1);
+            const $bar$ = $r3$.ɵr(4);
+            $r3$.ɵx();
+            const $foo$ = $r3$.ɵr(1);
             $r3$.ɵt(1, $r3$.ɵi2(" ", $foo$, "-", $bar$, " "));
           }
         }
@@ -1265,7 +1268,7 @@ describe('compiler compliance', () => {
               $r3$.ɵEe(4, "div", null, $c3$);
             }
             if (rf & 2) {
-              const $foo$ = $r3$.ɵld(1);
+              const $foo$ = $r3$.ɵr(1);
               $r3$.ɵt(2, $r3$.ɵi1(" ", $foo$, " "));
             }
           },
@@ -1277,6 +1280,77 @@ describe('compiler compliance', () => {
 
       expectEmit(source, MyComponentDefinition, 'Incorrect MyComponent.ngComponentDef');
 
+    });
+
+    it('should support local refs mixed with context assignments', () => {
+      const files = {
+        app: {
+          'spec.ts': `
+              import {Component, NgModule} from '@angular/core';
+              import {CommonModule} from '@angular/common';
+
+              @Component({
+                selector: 'my-component',
+                template: \`
+                  <div *ngFor="let item of items">
+                     <div #foo></div>
+                      <span *ngIf="showing">
+                        {{ foo }} - {{ item }}
+                      </span>
+                  </div>\`
+              })
+              export class MyComponent {}
+
+              @NgModule({declarations: [MyComponent], imports: [CommonModule]})
+              export class MyModule {}
+          `
+        }
+      };
+
+      const template = `
+      const $c0$ = ["ngFor","","ngForOf",""];
+      const $c1$ = ["foo", ""];
+      const $c2$ = ["ngIf",""];
+      
+      function MyComponent_div_span_Template_3(rf, ctx) {
+        if (rf & 1) {
+          $i0$.ɵE(0, "span");
+          $i0$.ɵT(1);
+          $i0$.ɵe();
+        }
+        if (rf & 2) {
+          const $item$ = $i0$.ɵx().$implicit;
+          const $foo$ = $i0$.ɵr(2);
+          $i0$.ɵt(1, $i0$.ɵi2(" ", $foo$, " - ", $item$, " "));
+        }
+      }
+      
+      function MyComponent_div_Template_0(rf, ctx) {
+        if (rf & 1) {
+          $i0$.ɵE(0, "div");
+          $i0$.ɵEe(1, "div", null, $c1$);
+          $i0$.ɵC(3, MyComponent_div_span_Template_3, null, $c2$);
+          $i0$.ɵe();
+        }
+        if (rf & 2) {
+          const $app$ = $i0$.ɵx();
+          $i0$.ɵp(3, "ngIf", $i0$.ɵb($app$.showing));
+        }
+      }
+      
+      // ...
+      template:function MyComponent_Template(rf, ctx){
+        if (rf & 1) {
+          $i0$.ɵC(0, MyComponent_div_Template_0, null, $c0$);
+        }
+        if (rf & 2) {
+          $i0$.ɵp(0, "ngForOf", $i0$.ɵb(ctx.items));
+        }
+      }`;
+
+      const result = compile(files, angularFiles);
+
+      expectEmit(result.source, template, 'Incorrect template');
     });
 
     describe('lifecycle hooks', () => {

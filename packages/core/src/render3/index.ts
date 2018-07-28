@@ -49,7 +49,7 @@ export {
   containerRefreshStart as cR,
   containerRefreshEnd as cr,
 
-  getNextContext as x,
+  nextContext as x,
 
   element as Ee,
   elementAttribute as a,

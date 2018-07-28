@@ -513,9 +513,6 @@
     "name": "getMultiStartIndex"
   },
   {
-    "name": "getNextContext"
-  },
-  {
     "name": "getNextLNode"
   },
   {
@@ -694,6 +691,9 @@
   },
   {
     "name": "namespaceHTML"
+  },
+  {
+    "name": "nextContext"
   },
   {
     "name": "pointers"

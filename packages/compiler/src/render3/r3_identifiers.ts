@@ -45,7 +45,7 @@ export class Identifiers {
 
   static containerCreate: o.ExternalReference = {name: 'ɵC', moduleName: CORE};
 
-  static getNextContext: o.ExternalReference = {name: 'ɵx', moduleName: CORE};
+  static nextContext: o.ExternalReference = {name: 'ɵx', moduleName: CORE};
 
   static text: o.ExternalReference = {name: 'ɵT', moduleName: CORE};
 

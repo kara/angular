@@ -7,7 +7,7 @@
  */
 
 import {AttributeMarker, defineComponent, defineDirective} from '../../src/render3/index';
-import {bind, container, containerRefreshEnd, containerRefreshStart, element, elementAttribute, elementClassProp, elementEnd, elementProperty, elementStart, elementStyling, elementStylingApply, embeddedViewEnd, embeddedViewStart, getNextContext, interpolation2, load, reference, text, textBinding} from '../../src/render3/instructions';
+import {bind, container, containerRefreshEnd, containerRefreshStart, element, elementAttribute, elementClassProp, elementEnd, elementProperty, elementStart, elementStyling, elementStylingApply, embeddedViewEnd, embeddedViewStart, interpolation2, nextContext, reference, text, textBinding} from '../../src/render3/instructions';
 import {InitialStylingFlags, RenderFlags} from '../../src/render3/interfaces/definition';
 
 import {NgIf} from './common_with_def';
@@ -23,7 +23,7 @@ describe('exports', () => {
         text(2);
       }
       if (rf & RenderFlags.Update) {
-        const tmp = load(1) as any;
+        const tmp = reference(1) as any;
         textBinding(2, tmp.value);
       }
     }
@@ -40,7 +40,7 @@ describe('exports', () => {
         text(2);
       }
       if (rf & RenderFlags.Update) {
-        const tmp = load(1) as any;
+        const tmp = reference(1) as any;
         textBinding(2, tmp.name);
       }
     }
@@ -94,7 +94,7 @@ describe('exports', () => {
         element(2, 'div', ['myDir', '']);
       }
       if (rf & RenderFlags.Update) {
-        const tmp = load(1) as any;
+        const tmp = reference(1) as any;
         elementProperty(2, 'myDir', bind(tmp));
       }
     }
@@ -112,7 +112,7 @@ describe('exports', () => {
         text(2);
       }
       if (rf & RenderFlags.Update) {
-        const tmp = load(1) as any;
+        const tmp = reference(1) as any;
         textBinding(2, tmp.name);
       }
     }
@@ -153,7 +153,7 @@ describe('exports', () => {
           element(1, 'input', ['value', 'one'], ['myInput', '']);
         }
         if (rf & RenderFlags.Update) {
-          const tmp = load(2) as any;
+          const tmp = reference(2) as any;
           textBinding(0, bind(tmp.value));
         }
       }
@@ -170,7 +170,7 @@ describe('exports', () => {
           element(1, 'input', ['value', 'one'], ['myInput', '']);
         }
         if (rf & RenderFlags.Update) {
-          const tmp = load(2) as any;
+          const tmp = reference(2) as any;
           elementProperty(0, 'title', bind(tmp.value));
         }
       }
@@ -186,7 +186,7 @@ describe('exports', () => {
           element(1, 'input', ['value', 'one'], ['myInput', '']);
         }
         if (rf & RenderFlags.Update) {
-          const tmp = load(2) as any;
+          const tmp = reference(2) as any;
           elementAttribute(0, 'aria-label', bind(tmp.value));
         }
       }
@@ -204,7 +204,7 @@ describe('exports', () => {
           element(1, 'input', ['type', 'checkbox', 'checked', 'true'], ['myInput', '']);
         }
         if (rf & RenderFlags.Update) {
-          const tmp = load(2) as any;
+          const tmp = reference(2) as any;
           elementClassProp(0, 0, tmp.checked);
           elementStylingApply(0);
         }
@@ -251,7 +251,7 @@ describe('exports', () => {
           element(1, 'comp', null, ['myComp', '']);
         }
         if (rf & RenderFlags.Update) {
-          const tmp = load(2) as any;
+          const tmp = reference(2) as any;
           elementProperty(0, 'myDir', bind(tmp));
         }
       }
@@ -271,8 +271,8 @@ describe('exports', () => {
           element(4, 'input', ['value', 'one'], ['myInput', '']);
         }
         if (rf & RenderFlags.Update) {
-          const tmp1 = load(3) as any;
-          const tmp2 = load(5) as any;
+          const tmp1 = reference(3) as any;
+          const tmp2 = reference(5) as any;
           textBinding(0, bind(tmp2.value));
           textBinding(1, bind(tmp1.name));
         }
@@ -314,7 +314,7 @@ describe('exports', () => {
                   element(1, 'input', ['value', 'one'], ['myInput', '']);
                 }
                 if (rf1 & RenderFlags.Update) {
-                  const tmp = load(2) as any;
+                  const tmp = reference(2) as any;
                   textBinding(0, bind(tmp.value));
                 }
               }
@@ -368,8 +368,8 @@ describe('exports', () => {
         }
 
         if (rf & RenderFlags.Update) {
-          const outerInput = reference(1, 1) as any;
-          const app = getNextContext();
+          const app = nextContext();
+          const outerInput = reference(1) as any;
           textBinding(1, bind(outerInput.value));
           elementProperty(4, 'ngIf', bind(app.inner));
         }
@@ -383,8 +383,10 @@ describe('exports', () => {
         }
 
         if (rf & RenderFlags.Update) {
-          const outerInput = reference(2, 1) as any;
-          const innerInput = reference(1, 3) as any;
+          nextContext();
+          const innerInput = reference(3) as any;
+          nextContext();
+          const outerInput = reference(1) as any;
           textBinding(1, interpolation2('', outerInput.value, ' - ', innerInput.value, ''));
         }
       }

@@ -16,7 +16,7 @@ import {assertDefined, assertEqual, assertLessThan, assertNotDefined, assertNotE
 import {throwCyclicDependencyError, throwErrorIfNoChangesMode, throwMultipleComponentError} from './errors';
 import {executeHooks, executeInitHooks, queueInitHooks, queueLifecycleHooks} from './hooks';
 import {ACTIVE_INDEX, LContainer, RENDER_PARENT, VIEWS} from './interfaces/container';
-import {ComponentDefInternal, ComponentQuery, ComponentTemplate, DirectiveDefInternal, DirectiveDefListOrFactory, EmbeddedTemplate, InitialStylingFlags, PipeDefListOrFactory, RenderFlags} from './interfaces/definition';
+import {ComponentDefInternal, ComponentQuery, ComponentTemplate, DirectiveDefInternal, DirectiveDefListOrFactory, InitialStylingFlags, PipeDefListOrFactory, RenderFlags} from './interfaces/definition';
 import {LInjector} from './interfaces/injector';
 import {AttributeMarker, InitialInputData, InitialInputs, LContainerNode, LElementNode, LNode, LProjectionNode, LTextNode, LViewNode, PropertyAliasValue, PropertyAliases, TAttributes, TContainerNode, TElementNode, TNode, TNodeFlags, TNodeType} from './interfaces/node';
 import {CssSelectorList, NG_PROJECT_AS_ATTR_NAME} from './interfaces/projection';
@@ -166,12 +166,12 @@ export function getCreationMode(): boolean {
 let viewData: LViewData;
 
 /**
- * The last viewData retrieved by getNextContext().
- * Allows building getNextContext() calls.
+ * The last viewData retrieved by nextContext().
+ * Allows building nextContext() and reference() calls.
  *
  * e.g. const outer = x().$implicit; const inner = x().$implicit;
  */
-let contextViewData: LViewData|null = null;
+let contextViewData: LViewData = null !;
 
 /**
  * An array of directive instances in the current view.
@@ -574,13 +574,16 @@ export function renderEmbeddedTemplate<T>(
 }
 
 /**
- * Retrieves a context at the level specified. Will get the next level up
- * if not specified.
+ * Retrieves a context at the level specified and saves it as the global, contextViewData.
+ * Will get the next level up if level is not specified.
  *
- * @param level The relative level of the view from which to grab context
+ * This is used to save contexts of parent views so they can be bound in embedded views, or
+ * in conjunction with reference() to bind a ref from a parent view.
+ *
+ * @param level The relative level of the view from which to grab context compared to contextVewData
  * @returns context
  */
-export function getNextContext(level: number = 1): any {
+export function nextContext(level: number = 1): any {
   contextViewData = walkUpViews(level, contextViewData !);
   return contextViewData[CONTEXT];
 }
@@ -917,7 +920,7 @@ function getOrCreateTView(
  * @param pipes Registry of pipes for this view
  */
 export function createTView(
-    viewIndex: number, template: ComponentTemplate<any>| EmbeddedTemplate<any>| null,
+    viewIndex: number, template: ComponentTemplate<any>| null,
     directives: DirectiveDefListOrFactory | null, pipes: PipeDefListOrFactory | null,
     viewQuery: ComponentQuery<any>| null): TView {
   ngDevMode && ngDevMode.tView++;
@@ -1738,7 +1741,7 @@ export function createLContainer(
  * @param localRefs A set of local reference bindings on the element.
  */
 export function container(
-    index: number, template?: EmbeddedTemplate<any>, tagName?: string | null, attrs?: TAttributes,
+    index: number, template?: ComponentTemplate<any>, tagName?: string | null, attrs?: TAttributes,
     localRefs?: string[] | null): void {
   ngDevMode &&
       assertEqual(
@@ -2563,9 +2566,16 @@ export function store<T>(index: number, value: T): void {
   viewData[adjustedIndex] = value;
 }
 
-/** Retrieves a value from an LViewData at the given nesting level. */
-export function reference<T>(nestingLevel: number, index: number) {
-  return loadInternal<T>(index, walkUpViews(nestingLevel, viewData));
+/**
+ * Retrieves a local reference from the current contextViewData.
+ *
+ * If the reference to retrieve is in a parent view, this instruction is used in conjunction
+ * with a nextContext() call, which walks up the tree and updates the contextViewData instance,.
+ *
+ * @param index The index of the local ref in contextViewData.
+ */
+export function reference<T>(index: number) {
+  return loadInternal<T>(index, contextViewData);
 }
 
 function walkUpViews(nestingLevel: number, currentView: LViewData): LViewData {

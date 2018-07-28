@@ -10,7 +10,7 @@
 import {DoCheck, Input, TemplateRef, ViewContainerRef, ViewEncapsulation, createInjector, defineInjectable, defineInjector} from '../../src/core';
 import {getRenderedText} from '../../src/render3/component';
 import {AttributeMarker, ComponentFactory, LifecycleHooksFeature, defineComponent, directiveInject, markDirty} from '../../src/render3/index';
-import {bind, container, containerRefreshEnd, containerRefreshStart, element, elementEnd, elementProperty, elementStart, embeddedViewEnd, embeddedViewStart, getNextContext, text, textBinding, tick} from '../../src/render3/instructions';
+import {bind, container, containerRefreshEnd, containerRefreshStart, element, elementEnd, elementProperty, elementStart, embeddedViewEnd, embeddedViewStart, nextContext, text, textBinding, tick} from '../../src/render3/instructions';
 import {ComponentDefInternal, DirectiveDefInternal, RenderFlags} from '../../src/render3/interfaces/definition';
 import {createRendererType2} from '../../src/view/index';
 
@@ -400,7 +400,7 @@ describe('recursive components', () => {
       elementEnd();
     }
     if (rf & RenderFlags.Update) {
-      const parent = getNextContext();
+      const parent = nextContext();
       elementProperty(0, 'data', bind(parent.data.left));
     }
   }
@@ -411,7 +411,7 @@ describe('recursive components', () => {
       elementEnd();
     }
     if (rf & RenderFlags.Update) {
-      const parent = getNextContext();
+      const parent = nextContext();
       elementProperty(0, 'data', bind(parent.data.right));
     }
   }

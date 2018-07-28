@@ -12,7 +12,6 @@ import {ViewContainerRef as viewEngine_ViewContainerRef} from '../linker/view_co
 import {EmbeddedViewRef as viewEngine_EmbeddedViewRef, InternalViewRef as viewEngine_InternalViewRef} from '../linker/view_ref';
 
 import {checkNoChanges, detectChanges, markViewDirty, storeCleanupFn, viewAttached} from './instructions';
-import {EmbeddedTemplate} from './interfaces/definition';
 import {LViewNode} from './interfaces/node';
 import {FLAGS, LViewData, LViewFlags} from './interfaces/view';
 import {destroyLView} from './node_manipulation';

@@ -9,7 +9,7 @@
 import {Component, ComponentFactoryResolver, Directive, EmbeddedViewRef, NgModuleRef, Pipe, PipeTransform, RendererFactory2, TemplateRef, ViewContainerRef, createInjector, defineInjector, ɵAPP_ROOT as APP_ROOT, ɵNgModuleDef as NgModuleDef} from '../../src/core';
 import {getOrCreateNodeInjectorForNode, getOrCreateTemplateRef} from '../../src/render3/di';
 import {AttributeMarker, NgOnChangesFeature, defineComponent, defineDirective, definePipe, injectComponentFactoryResolver, injectTemplateRef, injectViewContainerRef} from '../../src/render3/index';
-import {bind, container, containerRefreshEnd, containerRefreshStart, element, elementEnd, elementProperty, elementStart, embeddedViewEnd, embeddedViewStart, getNextContext, interpolation1, interpolation3, load, loadDirective, projection, projectionDef, reserveSlots, text, textBinding} from '../../src/render3/instructions';
+import {bind, container, containerRefreshEnd, containerRefreshStart, element, elementEnd, elementProperty, elementStart, embeddedViewEnd, embeddedViewStart, interpolation1, interpolation3, load, loadDirective, nextContext, projection, projectionDef, reserveSlots, text, textBinding} from '../../src/render3/instructions';
 import {RenderFlags} from '../../src/render3/interfaces/definition';
 import {NgModuleFactory} from '../../src/render3/ng_module_ref';
 import {pipe, pipeBind1} from '../../src/render3/pipe';
@@ -529,7 +529,7 @@ describe('ViewContainerRef', () => {
              }
 
              if (rf1 & RenderFlags.Update) {
-               const parent = getNextContext();
+               const parent = nextContext();
                textBinding(1, bind(parent.name));
              }
            }
@@ -638,8 +638,8 @@ describe('ViewContainerRef', () => {
 
           if (rf & RenderFlags.Update) {
             const cell = ctx.$implicit as any;
-            const row = getNextContext().$implicit as any;
-            const parent = getNextContext();
+            const row = nextContext().$implicit as any;
+            const parent = nextContext();
             textBinding(1, interpolation3('', cell, ' - ', row.value, ' - ', parent.name, ''));
           }
         }
