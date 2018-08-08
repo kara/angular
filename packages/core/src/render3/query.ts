@@ -17,10 +17,23 @@ import {getSymbolIterator} from '../util';
 
 import {assertDefined, assertEqual} from './assert';
 import {ReadFromInjectorFn, getOrCreateNodeInjectorForNode} from './di';
-import {assertPreviousIsParent, getCurrentQueries, store, storeCleanupWithContext} from './instructions';
+import {
+  assertPreviousIsParent,
+  getOrCreateCurrentQueries,
+  getPreviousOrParentNode,
+  store,
+  storeCleanupWithContext
+} from './instructions';
 import {DirectiveDefInternal, unusedValueExportToPlacateAjd as unused1} from './interfaces/definition';
 import {LInjector, unusedValueExportToPlacateAjd as unused2} from './interfaces/injector';
-import {LContainerNode, LElementNode, LNode, TNode, TNodeFlags, unusedValueExportToPlacateAjd as unused3} from './interfaces/node';
+import {
+  LContainerNode,
+  LElementNode,
+  LNode,
+  TNode,
+  TNodeFlags,
+  unusedValueExportToPlacateAjd as unused3
+} from './interfaces/node';
 import {LQueries, QueryReadType, unusedValueExportToPlacateAjd as unused4} from './interfaces/query';
 import {DIRECTIVES, TVIEW} from './interfaces/view';
 import {flatten} from './util';
@@ -89,7 +102,8 @@ export class LQueries_ implements LQueries {
   shallow: LQuery<any>|null = null;
   deep: LQuery<any>|null = null;
 
-  constructor(deep?: LQuery<any>) { this.deep = deep == null ? null : deep; }
+  constructor(public parent: LQueries_|null, public contentHostNode: TNode|null,
+              deep?: LQuery<any>) { this.deep = deep == null ? null : deep; }
 
   track<T>(
       queryList: viewEngine_QueryList<T>, predicate: Type<T>|string[], descend?: boolean,
@@ -101,21 +115,12 @@ export class LQueries_ implements LQueries {
     }
   }
 
-  clone(): LQueries|null { return this.deep ? new LQueries_(this.deep) : null; }
-
-  child(): LQueries|null {
-    if (this.deep === null) {
-      // if we don't have any deep queries then no need to track anything more.
-      return null;
-    }
-    if (this.shallow === null) {
-      // DeepQuery: We can reuse the current state if the child state would be same as current
-      // state.
-      return this;
-    } else {
-      // We need to create new state
-      return new LQueries_(this.deep);
-    }
+  clone(hostNode: TNode): LQueries {
+    const queries = new LQueries_(this, hostNode, this.deep || undefined);
+    // can't just copy over shallow because then we'll go through the shallow queries
+    // of the parent as well and mark matches for it. We need to somehow just do both.
+    // queries.shallow = this.shallow;
+    return queries;
   }
 
   container(): LQueries|null {
@@ -137,7 +142,7 @@ export class LQueries_ implements LQueries {
       query = query.next;
     }
 
-    return result ? new LQueries_(result) : null;
+    return result ? new LQueries_(this, null, result) : null;
   }
 
   createView(): LQueries|null {
@@ -157,7 +162,7 @@ export class LQueries_ implements LQueries {
       query = query.next;
     }
 
-    return result ? new LQueries_(result) : null;
+    return result ? new LQueries_(this, null, result !) : null;
   }
 
   insertView(index: number): void {
@@ -171,9 +176,21 @@ export class LQueries_ implements LQueries {
     }
   }
 
-  addNode(node: LNode): void {
-    add(this.shallow, node);
+  addNode(node: LNode): LQueries|null {
     add(this.deep, node);
+    this.addShallow(node);
+
+    return node.tNode === this.contentHostNode ? this.parent : this;
+  }
+
+  addShallow(node: LNode) {
+    if (isRootNode(node, this.contentHostNode)) {
+      add(this.shallow, node);
+
+      if (node.tNode === this.contentHostNode && this.parent) {
+        this.parent.addShallow(node);
+      }
+    }
   }
 
   removeView(): void {
@@ -196,6 +213,10 @@ export class LQueries_ implements LQueries {
       query = query.next;
     }
   }
+}
+
+function isRootNode(node: LNode, contentHostNode: TNode|null): boolean {
+  return node.tNode.parent === null || node.tNode === contentHostNode || node.tNode.parent === contentHostNode;
 }
 
 /**
@@ -418,7 +439,7 @@ export function query<T>(
     read?: QueryReadType<T>| Type<T>): QueryList<T> {
   ngDevMode && assertPreviousIsParent();
   const queryList = new QueryList<T>();
-  const queries = getCurrentQueries(LQueries_);
+  const queries = getOrCreateCurrentQueries(LQueries_);
   queries.track(queryList, predicate, descend, read);
   storeCleanupWithContext(null, queryList, queryList.destroy);
   if (memoryIndex != null) {

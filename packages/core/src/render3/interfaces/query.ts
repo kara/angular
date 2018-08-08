@@ -8,31 +8,39 @@
 
 import {QueryList} from '../../linker';
 import {Type} from '../../type';
-import {LNode} from './node';
+import {LNode, TNode} from './node';
 
 /** Used for tracking queries (e.g. ViewChild, ContentChild). */
 export interface LQueries {
   /**
-   * Ask queries to prepare copy of itself. This assures that tracking new queries on child nodes
+   * The parent LQueries instance.
+   *
+   * When there is an embedded view or a content query, a new LQueries instance is created for their
+   * queries. After we are done searching the embedded view or content children, the parent property
+   * allows us to traverse back up to the original LQueries instance to continue to search for
+   * matches in the main view.
+   */
+  parent: LQueries|null;
+
+  /**
+   * When searching for matches to a content query, it's necessary to track the query directive's
+   * host node. Otherwise, we wouldn't know when we are finished searching content children and
+   * need to switch back to the parent LQueries instance.
+   */
+  contentHostNode: TNode | null;
+
+  /**
+   * Ask queries to prepare copy of itself. This assures that tracking new queries on content nodes
    * doesn't mutate list of queries tracked on a parent node. We will clone LQueries before
    * constructing content queries.
    */
-  clone(): LQueries|null;
-
-  /**
-   * Used to ask queries if those should be cloned to the child element.
-   *
-   * For example in the case of deep queries the `child()` returns
-   * queries for the child node. In case of shallow queries it returns
-   * `null`.
-   */
-  child(): LQueries|null;
+  clone(hostNode: TNode): LQueries;
 
   /**
    * Notify `LQueries` that a new `LNode` has been created and needs to be added to query results
    * if matching query predicate.
    */
-  addNode(node: LNode): void;
+  addNode(node: LNode): LQueries|null;
 
   /**
    * Notify `LQueries` that a new LContainer was added to ivy data structures. As a result we need

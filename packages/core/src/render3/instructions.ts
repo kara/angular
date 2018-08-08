@@ -175,12 +175,9 @@ let currentQueries: LQueries|null;
  * - when creating content queries (inb this previousOrParentNode points to a node on which we
  * create content queries).
  */
-export function getCurrentQueries(QueryType: {new (): LQueries}): LQueries {
+export function getOrCreateCurrentQueries(QueryType: {new (parent: null, hostNode: TNode): LQueries}): LQueries {
   // top level variables should not be exported for performance reasons (PERF_NOTES.md)
-  return currentQueries ||
-      (currentQueries =
-           (previousOrParentNode.queries && previousOrParentNode.queries.clone() ||
-            new QueryType()));
+  return currentQueries || (currentQueries = new QueryType(null, previousOrParentNode.tNode));
 }
 
 /**
@@ -392,14 +389,12 @@ export function createLViewData<T>(
  */
 export function createLNodeObject(
     type: TNodeType, currentView: LViewData, parent: LNode | null,
-    native: RText | RElement | RComment | null, state: any,
-    queries: LQueries | null): LElementNode&LTextNode&LViewNode&LContainerNode&LProjectionNode {
+    native: RText | RElement | RComment | null, state: any): LElementNode&LTextNode&LViewNode&LContainerNode&LProjectionNode {
   return {
     native: native as any,
     view: currentView,
     nodeInjector: parent ? parent.nodeInjector : null,
     data: state,
-    queries: queries,
     tNode: null !,
     dynamicLContainerNode: null
   };
@@ -442,12 +437,10 @@ export function createLNode(
   // so it's only set if the view is the same.
   const tParent =
       parent && parent.view === viewData ? parent.tNode as TElementNode | TContainerNode : null;
-  let queries =
-      (isParent ? currentQueries : previousOrParentNode && previousOrParentNode.queries) ||
-      parent && parent.queries && parent.queries.child();
+
   const isState = state != null;
   const node =
-      createLNodeObject(type, viewData, parent, native, isState ? state as any : null, queries);
+      createLNodeObject(type, viewData, parent, native, isState ? state as any : null);
 
   if (index === -1 || type === TNodeType.View) {
     // View nodes are not stored in data because they can be added / removed at runtime (which
@@ -477,7 +470,6 @@ export function createLNode(
 
     // Now link ourselves into the tree.
     if (isParent) {
-      currentQueries = null;
       if (previousOrParentNode.tNode.child == null && previousOrParentNode.view === viewData ||
           previousOrParentNode.tNode.type === TNodeType.View) {
         // We are in the same view, which means we are adding content node to the parent View.
@@ -747,8 +739,11 @@ export function elementContainerEnd(): void {
   }
 
   ngDevMode && assertNodeType(previousOrParentNode, TNodeType.ElementContainer);
-  const queries = previousOrParentNode.queries;
-  queries && queries.addNode(previousOrParentNode);
+
+  if (currentQueries) {
+    currentQueries = currentQueries.addNode(previousOrParentNode);
+  }
+
   queueLifecycleHooks(previousOrParentNode.tNode.flags, tView);
 }
 
@@ -836,9 +831,16 @@ function cacheMatchingDirectivesForNode(
   const exportsMap: ({[key: string]: number} | null) = localRefs ? {'': -1} : null;
   const matches = tView.currentMatches = findDirectiveMatches(tNode);
   if (matches) {
+    let cloned = !currentQueries;
+
     for (let i = 0; i < matches.length; i += 2) {
       const def = matches[i] as DirectiveDefInternal<any>;
       const valueIndex = i + 1;
+
+      if (!cloned && def.contentQueries) {
+        currentQueries = currentQueries !.clone(previousOrParentNode.tNode);
+        cloned = true;
+      }
       resolveDirective(def, valueIndex, matches, tView);
       saveNameToExportMap(matches[valueIndex] as number, def, exportsMap);
     }
@@ -917,6 +919,7 @@ export function isComponent(tNode: TNode): boolean {
 function instantiateDirectivesDirectly() {
   const tNode = previousOrParentNode.tNode;
   const count = tNode.flags & TNodeFlags.DirectiveCountMask;
+  let cloned = !currentQueries;
 
   if (count > 0) {
     const start = tNode.flags >> TNodeFlags.DirectiveStartingIndexShift;
@@ -925,6 +928,10 @@ function instantiateDirectivesDirectly() {
 
     for (let i = start; i < end; i++) {
       const def: DirectiveDefInternal<any> = tDirectives[i];
+      if (!cloned && def.contentQueries) {
+        currentQueries = currentQueries !.clone(previousOrParentNode.tNode);
+        cloned = true;
+      }
       directiveCreate(i, def.factory(), def);
     }
   }
@@ -1233,8 +1240,10 @@ export function elementEnd(): void {
     previousOrParentNode = getParentLNode(previousOrParentNode) as LElementNode;
   }
   ngDevMode && assertNodeType(previousOrParentNode, TNodeType.Element);
-  const queries = previousOrParentNode.queries;
-  queries && queries.addNode(previousOrParentNode);
+  debugger
+  if (currentQueries) {
+    currentQueries = currentQueries.addNode(previousOrParentNode);
+  }
   queueLifecycleHooks(previousOrParentNode.tNode.flags, tView);
   currentElementNode = null;
 }
@@ -1853,17 +1862,19 @@ export function container(
   // because views can be removed and re-inserted.
   addToViewTree(viewData, index + HEADER_OFFSET, node.data);
 
-  const queries = node.queries;
-  if (queries) {
+  if (currentQueries) {
     // prepare place for matching nodes from views inserted into a given container
-    lContainer[QUERIES] = queries.container();
+    lContainer[QUERIES] = currentQueries.container();
   }
 
   createDirectivesAndLocals(localRefs);
 
+  if (currentQueries) {
+    currentQueries = currentQueries.addNode(node);  // check if a given container node matches
+  }
+
   isParent = false;
   ngDevMode && assertNodeType(previousOrParentNode, TNodeType.Container);
-  queries && queries.addNode(node);  // check if a given container node matches
   queueLifecycleHooks(node.tNode.flags, tView);
 }
 
@@ -1990,8 +2001,7 @@ export function embeddedViewStart(viewBlockId: number): RenderFlags {
       newView[QUERIES] = lContainer[QUERIES] !.createView();
     }
 
-    enterView(
-        newView, viewNode = createLNode(viewBlockId, TNodeType.View, null, null, null, newView));
+    enterView(newView, viewNode = createLNode(viewBlockId, TNodeType.View, null, null, null, newView));
   }
   if (container) {
     if (creationMode) {

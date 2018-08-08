@@ -90,13 +90,6 @@ export interface LNode {
   nodeInjector: LInjector|null;
 
   /**
-   * Optional set of queries that track query-related events for this node.
-   *
-   * If present the node creation/updates are reported to the `LQueries`.
-   */
-  queries: LQueries|null;
-
-  /**
    * Pointer to the corresponding TNode object, which stores static
    * data about this node.
    */
