@@ -18,6 +18,7 @@ import {getSymbolIterator} from '../util';
 import {assertDefined, assertEqual} from './assert';
 import {ReadFromInjectorFn, getOrCreateNodeInjectorForNode} from './di';
 import {
+  _getViewData,
   assertPreviousIsParent,
   getOrCreateCurrentQueries,
   getPreviousOrParentNode,
@@ -102,8 +103,9 @@ export class LQueries_ implements LQueries {
   shallow: LQuery<any>|null = null;
   deep: LQuery<any>|null = null;
 
-  constructor(public parent: LQueries_|null, public contentHostNode: TNode|null,
-              deep?: LQuery<any>) { this.deep = deep == null ? null : deep; }
+  constructor(public parent: LQueries_|null, deep?: LQuery<any>) {
+    this.deep = deep == null ? null : deep;
+  }
 
   track<T>(
       queryList: viewEngine_QueryList<T>, predicate: Type<T>|string[], descend?: boolean,
@@ -115,12 +117,8 @@ export class LQueries_ implements LQueries {
     }
   }
 
-  clone(hostNode: TNode): LQueries {
-    const queries = new LQueries_(this, hostNode, this.deep || undefined);
-    // can't just copy over shallow because then we'll go through the shallow queries
-    // of the parent as well and mark matches for it. We need to somehow just do both.
-    // queries.shallow = this.shallow;
-    return queries;
+  clone(): LQueries {
+    return new LQueries_(this, this.deep || undefined);
   }
 
   container(): LQueries|null {
@@ -142,7 +140,7 @@ export class LQueries_ implements LQueries {
       query = query.next;
     }
 
-    return result ? new LQueries_(this, null, result) : null;
+    return result ? new LQueries_(this, result) : null;
   }
 
   createView(): LQueries|null {
@@ -162,7 +160,7 @@ export class LQueries_ implements LQueries {
       query = query.next;
     }
 
-    return result ? new LQueries_(this, null, result !) : null;
+    return result ? new LQueries_(this, result !) : null;
   }
 
   insertView(index: number): void {
@@ -178,19 +176,22 @@ export class LQueries_ implements LQueries {
 
   addNode(node: LNode): LQueries|null {
     add(this.deep, node);
-    this.addShallow(node);
 
-    return node.tNode === this.contentHostNode ? this.parent : this;
-  }
+    const tNode = node.tNode;
+    const isContentHost = hasContentQuery(tNode);
+    const parentIsContentHost = tNode.parent && hasContentQuery(tNode.parent);
 
-  addShallow(node: LNode) {
-    if (isRootNode(node, this.contentHostNode)) {
+    if (tNode.parent === null || isContentHost || parentIsContentHost) {
       add(this.shallow, node);
 
-      if (node.tNode === this.contentHostNode && this.parent) {
-        this.parent.addShallow(node);
+      if (isContentHost) {
+        if (parentIsContentHost) {
+          add(this.parent !.shallow, node);
+        }
+        return this.parent;
       }
     }
+    return this;
   }
 
   removeView(): void {
@@ -215,8 +216,12 @@ export class LQueries_ implements LQueries {
   }
 }
 
-function isRootNode(node: LNode, contentHostNode: TNode|null): boolean {
-  return node.tNode.parent === null || node.tNode === contentHostNode || node.tNode.parent === contentHostNode;
+function eligibleForShallowQuery(tNode: TNode): boolean {
+  return tNode.parent === null || hasContentQuery(tNode.parent) || hasContentQuery(tNode);
+}
+
+function hasContentQuery(tNode: TNode): boolean {
+  return !!(tNode.flags & TNodeFlags.hasContentQuery);
 }
 
 /**

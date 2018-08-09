@@ -42,8 +42,11 @@ export const enum TNodeFlags {
   /** This bit is set if the node has been projected */
   isProjected = 0b00000000000000000010000000000000,
 
+  /** This bit is set if the node has been projected */
+  hasContentQuery = 0b00000000000000000100000000000000,
+
   /** The index of the first directive on this node is encoded on the most significant bits  */
-  DirectiveStartingIndexShift = 14,
+  DirectiveStartingIndexShift = 15,
 }
 
 /**

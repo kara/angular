@@ -176,8 +176,18 @@ let currentQueries: LQueries|null;
  * create content queries).
  */
 export function getOrCreateCurrentQueries(QueryType: {new (parent: null, hostNode: TNode): LQueries}): LQueries {
-  // top level variables should not be exported for performance reasons (PERF_NOTES.md)
-  return currentQueries || (currentQueries = new QueryType(null, previousOrParentNode.tNode));
+  const tNode = previousOrParentNode.tNode;
+
+  // if this is a content query and this is the first on this node, it needs to be cloned
+  if (previousOrParentNode.data !== viewData && (tNode.flags & TNodeFlags.hasContentQuery) === 0) {
+    if (currentQueries) currentQueries = currentQueries.clone(tNode);
+    tNode.flags |= TNodeFlags.hasContentQuery;
+  }
+
+  if (currentQueries === null) {
+    return currentQueries = new QueryType(null, tNode);
+  }
+  return currentQueries;
 }
 
 /**
@@ -809,11 +819,11 @@ export function elementCreate(name: string, overriddenRenderer?: Renderer3): REl
  * @param localRefs Local refs of the current node
  */
 function createDirectivesAndLocals(localRefs?: string[] | null) {
-  const node = previousOrParentNode;
+  const tNode = previousOrParentNode.tNode;
 
   if (firstTemplatePass) {
     ngDevMode && ngDevMode.firstTemplatePass++;
-    cacheMatchingDirectivesForNode(node.tNode, tView, localRefs || null);
+    cacheMatchingDirectivesForNode(tNode, tView, localRefs || null);
   } else {
     instantiateDirectivesDirectly();
   }
@@ -827,20 +837,14 @@ function createDirectivesAndLocals(localRefs?: string[] | null) {
  */
 function cacheMatchingDirectivesForNode(
     tNode: TNode, tView: TView, localRefs: string[] | null): void {
+
   // Please make sure to have explicit type for `exportsMap`. Inferred type triggers bug in tsickle.
   const exportsMap: ({[key: string]: number} | null) = localRefs ? {'': -1} : null;
   const matches = tView.currentMatches = findDirectiveMatches(tNode);
   if (matches) {
-    let cloned = !currentQueries;
-
     for (let i = 0; i < matches.length; i += 2) {
       const def = matches[i] as DirectiveDefInternal<any>;
       const valueIndex = i + 1;
-
-      if (!cloned && def.contentQueries) {
-        currentQueries = currentQueries !.clone(previousOrParentNode.tNode);
-        cloned = true;
-      }
       resolveDirective(def, valueIndex, matches, tView);
       saveNameToExportMap(matches[valueIndex] as number, def, exportsMap);
     }
@@ -919,7 +923,6 @@ export function isComponent(tNode: TNode): boolean {
 function instantiateDirectivesDirectly() {
   const tNode = previousOrParentNode.tNode;
   const count = tNode.flags & TNodeFlags.DirectiveCountMask;
-  let cloned = !currentQueries;
 
   if (count > 0) {
     const start = tNode.flags >> TNodeFlags.DirectiveStartingIndexShift;
@@ -928,10 +931,6 @@ function instantiateDirectivesDirectly() {
 
     for (let i = start; i < end; i++) {
       const def: DirectiveDefInternal<any> = tDirectives[i];
-      if (!cloned && def.contentQueries) {
-        currentQueries = currentQueries !.clone(previousOrParentNode.tNode);
-        cloned = true;
-      }
       directiveCreate(i, def.factory(), def);
     }
   }

@@ -23,18 +23,11 @@ export interface LQueries {
   parent: LQueries|null;
 
   /**
-   * When searching for matches to a content query, it's necessary to track the query directive's
-   * host node. Otherwise, we wouldn't know when we are finished searching content children and
-   * need to switch back to the parent LQueries instance.
-   */
-  contentHostNode: TNode | null;
-
-  /**
    * Ask queries to prepare copy of itself. This assures that tracking new queries on content nodes
    * doesn't mutate list of queries tracked on a parent node. We will clone LQueries before
    * constructing content queries.
    */
-  clone(hostNode: TNode): LQueries;
+  clone(): LQueries;
 
   /**
    * Notify `LQueries` that a new `LNode` has been created and needs to be added to query results
