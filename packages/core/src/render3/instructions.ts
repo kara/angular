@@ -175,19 +175,16 @@ let currentQueries: LQueries|null;
  * - when creating content queries (inb this previousOrParentNode points to a node on which we
  * create content queries).
  */
-export function getOrCreateCurrentQueries(QueryType: {new (parent: null, hostNode: TNode): LQueries}): LQueries {
+export function getOrCreateCurrentQueries(QueryType: {new (parent: null): LQueries}): LQueries {
   const tNode = previousOrParentNode.tNode;
 
-  // if this is a content query and this is the first on this node, it needs to be cloned
+  // if this is the first content query on a node, any existing LQueries needs to be cloned
   if (previousOrParentNode.data !== viewData && (tNode.flags & TNodeFlags.hasContentQuery) === 0) {
-    if (currentQueries) currentQueries = currentQueries.clone(tNode);
+    if (currentQueries) currentQueries = currentQueries.clone();
     tNode.flags |= TNodeFlags.hasContentQuery;
   }
 
-  if (currentQueries === null) {
-    return currentQueries = new QueryType(null, tNode);
-  }
-  return currentQueries;
+  return currentQueries || (currentQueries = new QueryType(null));
 }
 
 /**

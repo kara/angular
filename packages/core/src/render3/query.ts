@@ -177,17 +177,15 @@ export class LQueries_ implements LQueries {
   addNode(node: LNode): LQueries|null {
     add(this.deep, node);
 
-    const tNode = node.tNode;
-    const isContentHost = hasContentQuery(tNode);
-    const parentIsContentHost = tNode.parent && hasContentQuery(tNode.parent);
+    const parentNode = node.tNode.parent;
+    const isContentHost = hasContentQuery(node.tNode);
+    const parentIsContentHost = parentNode && hasContentQuery(parentNode);
 
-    if (tNode.parent === null || isContentHost || parentIsContentHost) {
+    if (parentNode === null || isContentHost || parentIsContentHost) {
       add(this.shallow, node);
 
       if (isContentHost) {
-        if (parentIsContentHost) {
-          add(this.parent !.shallow, node);
-        }
+        parentIsContentHost && add(this.parent !.shallow, node);
         return this.parent;
       }
     }
