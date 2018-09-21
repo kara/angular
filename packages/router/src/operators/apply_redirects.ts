@@ -7,21 +7,25 @@
  */
 
 import {Injector} from '@angular/core';
-import {MonoTypeOperatorFunction, Observable} from 'rxjs';
-import {flatMap, map} from 'rxjs/operators';
+import {Observable, OperatorFunction} from 'rxjs';
+import {flatMap} from 'rxjs/operators';
 
 import {applyRedirects as applyRedirectsFn} from '../apply_redirects';
 import {Routes} from '../config';
-import {NavigationTransition} from '../router';
 import {RouterConfigLoader} from '../router_config_loader';
-import {UrlSerializer} from '../url_tree';
+import {UrlSerializer, UrlTree} from '../url_tree';
 
+
+/**
+ * Returns the `UrlTree` with the redirection applied.
+ *
+ * Lazy modules are loaded along the way.
+ */
 export function applyRedirects(
     moduleInjector: Injector, configLoader: RouterConfigLoader, urlSerializer: UrlSerializer,
-    config: Routes): MonoTypeOperatorFunction<NavigationTransition> {
-  return function(source: Observable<NavigationTransition>) {
+    config: Routes): OperatorFunction<UrlTree, UrlTree> {
+  return function(source: Observable<UrlTree>) {
     return source.pipe(flatMap(
-        t => applyRedirectsFn(moduleInjector, configLoader, urlSerializer, t.extractedUrl, config)
-                 .pipe(map(url => ({...t, urlAfterRedirects: url})))));
+        urlTree => applyRedirectsFn(moduleInjector, configLoader, urlSerializer, urlTree, config)));
   };
 }

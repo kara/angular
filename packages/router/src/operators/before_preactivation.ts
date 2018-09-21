@@ -9,17 +9,21 @@
 import {MonoTypeOperatorFunction} from 'rxjs';
 import {map, mergeMap} from 'rxjs/operators';
 
-import {NavigationTransition, RouterHook} from '../router';
+import {RouterHook} from '../router';
+import {RouterStateSnapshot} from '../router_state';
+import {UrlTree} from '../url_tree';
 
-export function beforePreactivation(hook: RouterHook):
-    MonoTypeOperatorFunction<NavigationTransition> {
+export function beforePreactivation(
+    hook: RouterHook, navigationId: number, appliedUrlTree: UrlTree, rawUrlTree: UrlTree,
+    skipLocationChange: boolean, replaceUrl: boolean):
+    MonoTypeOperatorFunction<{appliedUrl: UrlTree, snapshot: RouterStateSnapshot}> {
   return function(source) {
-    return source.pipe(mergeMap(t => hook(t.targetSnapshot !, {
-                                       navigationId: t.id,
-                                       appliedUrlTree: t.extractedUrl,
-                                       rawUrlTree: t.rawUrl,
-                                       skipLocationChange: !!t.extras.skipLocationChange,
-                                       replaceUrl: !!t.extras.replaceUrl,
-                                     }).pipe(map(() => t))));
+    return source.pipe(mergeMap(
+        p => hook(
+                 p.snapshot,
+                 {
+                     navigationId, appliedUrlTree, rawUrlTree, skipLocationChange, replaceUrl,
+                 })
+                 .pipe(map(() => p))));
   };
 }

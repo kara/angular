@@ -291,49 +291,41 @@ describe('Integration', () => {
 
     });
 
-    // TODO(jasonaden): This test now fails because it relies on waiting on a guard to finish
-    // executing even after a new navigation has been scheduled. The previous implementation
-    // would do so, but ignore the result of any guards that are executing when a new navigation
-    // is scheduled.
+    it('should execute navigations serialy',
+       fakeAsync(inject([Router, Location], (router: Router) => {
+         const fixture = createRoot(router, RootCmp);
 
-    // With new implementation, the current navigation will be unrolled and cleaned up so the
-    // new navigation can start immediately. This test therefore fails as it relies on that
-    // previous incorrect behavior.
-    xit('should execute navigations serialy',
-        fakeAsync(inject([Router, Location], (router: Router) => {
-          const fixture = createRoot(router, RootCmp);
+         router.resetConfig([
+           {path: 'a', component: SimpleCmp, canActivate: ['trueRightAway', 'trueIn2Seconds']},
+           {path: 'b', component: SimpleCmp, canActivate: ['trueRightAway', 'trueIn2Seconds']}
+         ]);
 
-          router.resetConfig([
-            {path: 'a', component: SimpleCmp, canActivate: ['trueRightAway', 'trueIn2Seconds']},
-            {path: 'b', component: SimpleCmp, canActivate: ['trueRightAway', 'trueIn2Seconds']}
-          ]);
+         router.navigateByUrl('/a');
+         tick(100);
+         fixture.detectChanges();
 
-          router.navigateByUrl('/a');
-          tick(100);
-          fixture.detectChanges();
+         router.navigateByUrl('/b');
+         tick(100);  // 200
+         fixture.detectChanges();
 
-          router.navigateByUrl('/b');
-          tick(100);  // 200
-          fixture.detectChanges();
+         expect(log).toEqual(['trueRightAway', 'trueIn2Seconds-start']);
 
-          expect(log).toEqual(['trueRightAway', 'trueIn2Seconds-start']);
+         tick(2000);  // 2200
+         fixture.detectChanges();
 
-          tick(2000);  // 2200
-          fixture.detectChanges();
+         expect(log).toEqual([
+           'trueRightAway', 'trueIn2Seconds-start', 'trueIn2Seconds-end', 'trueRightAway',
+           'trueIn2Seconds-start'
+         ]);
 
-          expect(log).toEqual([
-            'trueRightAway', 'trueIn2Seconds-start', 'trueIn2Seconds-end', 'trueRightAway',
-            'trueIn2Seconds-start'
-          ]);
+         tick(2000);  // 4200
+         fixture.detectChanges();
 
-          tick(2000);  // 4200
-          fixture.detectChanges();
-
-          expect(log).toEqual([
-            'trueRightAway', 'trueIn2Seconds-start', 'trueIn2Seconds-end', 'trueRightAway',
-            'trueIn2Seconds-start', 'trueIn2Seconds-end'
-          ]);
-        })));
+         expect(log).toEqual([
+           'trueRightAway', 'trueIn2Seconds-start', 'trueIn2Seconds-end', 'trueRightAway',
+           'trueIn2Seconds-start', 'trueIn2Seconds-end'
+         ]);
+       })));
   });
 
   it('Should work inside ChangeDetectionStrategy.OnPush components', fakeAsync(() => {
@@ -970,6 +962,7 @@ describe('Integration', () => {
              locationUrlBeforeEmittingError = location.path();
            }
          });
+
          router.navigateByUrl('/throwing').catch(() => null);
          advance(fixture);
 
