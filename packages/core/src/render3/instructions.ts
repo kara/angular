@@ -29,7 +29,6 @@ import {appendChild, appendProjectedNode, createTextNode, findComponentView, get
 import {isNodeMatchingSelectorList, matchingSelectorIndex} from './node_selector_matcher';
 import {StylingContext, allocStylingContext, createStylingContextTemplate, renderStyling as renderElementStyles, updateClassProp as updateElementClassProp, updateStyleProp as updateElementStyleProp, updateStylingMap} from './styling';
 import {assertDataInRangeInternal, getLNode, getRootContext, getRootView, isContentQueryHost, isDifferent, loadElementInternal, loadInternal, stringify} from './util';
-import {ViewRef} from './view_ref';
 
 
 
@@ -140,6 +139,10 @@ export function getPreviousOrParentTNode(): TNode {
   return previousOrParentTNode;
 }
 
+export function setEnvironment(tNode: TNode, view: LViewData) {
+  previousOrParentTNode = tNode;
+  viewData = view;
+}
 
 /**
  * If `isParent` is:
