@@ -18,7 +18,7 @@ const BASE = isBazel ? 'angular/modules' : 'dist/all';
 require(`./${BASE}/e2e_util/perf_util`).readCommandLine();
 
 var CHROME_OPTIONS = {
-  'args': ['--js-flags=--expose-gc', '--no-sandbox'],
+  'args': ['--js-flags=--expose-gc', '--no-sandbox', '--incognito'],
   'perfLoggingPrefs': {
     'traceCategories': 'v8,blink.console,devtools.timeline,disabled-by-default-devtools.timeline'
   }
@@ -55,13 +55,13 @@ function mergeInto(src, target) {
 const config = {
   onPrepare: function() { beforeEach(function() { browser.ignoreSynchronization = false; }); },
   restartBrowserBetweenTests: true,
-  allScriptsTimeout: 11000,
+  allScriptsTimeout: 110000,
   capabilities: process.env.TRAVIS ? BROWSER_CAPS.ChromeOnTravis : BROWSER_CAPS.LocalChrome,
   directConnect: true,
   framework: 'jasmine2',
   jasmineNodeOpts: {
     showColors: true,
-    defaultTimeoutInterval: 60000,
+    defaultTimeoutInterval: 10000000,
     print: function(msg) { console.log(msg); },
   },
   useAllAngular2AppRoots: true

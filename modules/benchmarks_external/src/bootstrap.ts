@@ -37,6 +37,7 @@
           '@angular/router': '/packages-dist/router/bundles/router.umd.js',
           '@angular/core/src/facade': '/all/@angular/core/src/facade',
           'rxjs': 'node_modules/rxjs',
+          'reflect-metadata': 'node_modules/reflect-metadata'
         },
         packages: {
           'app': {defaultExtension: 'js'},
@@ -46,6 +47,7 @@
           'rxjs/testing': {main: 'index.js', defaultExtension: 'js' },
           'rxjs/websocket': {main: 'index.js', defaultExtension: 'js' },
           'rxjs': { main: 'index.js', defaultExtension: 'js' },
+          'reflect-metadata': {main: 'Reflect.js', defaultExtension: 'js'}
         }
       });
     } else {
@@ -57,6 +59,7 @@
           'index': 'index.js',
           '@angular': '/all/@angular',
           'rxjs': 'node_modules/rxjs',
+          'reflect-metadata': 'node_modules/reflect-metadata'
         },
         packages: {
           'app': {defaultExtension: 'js'},
@@ -73,6 +76,7 @@
           'rxjs/testing': {main: 'index.js', defaultExtension: 'js' },
           'rxjs/websocket': {main: 'index.js', defaultExtension: 'js' },
           'rxjs': { main: 'index.js', defaultExtension: 'js' },
+          'reflect-metadata': {main: 'Reflect.js', defaultExtension: 'js'}
         }
       });
     }

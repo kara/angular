@@ -60,9 +60,6 @@ export class TableComponent {
       for (let c = 0; c < dataRow.length; c++) {
         const dataCell = dataRow[c];
         const renderCell = document.createElement('td');
-        if (r % 2 === 0) {
-          renderCell.style.backgroundColor = 'grey';
-        }
         tr.appendChild(renderCell);
         renderRow[c] = renderCell;
         this._updateCell(renderCell, dataCell);

@@ -39,7 +39,7 @@ describe('largetable benchmark perf', () => {
 
   afterEach(verifyNoBrowserErrors);
 
-  [CreateOnlyWorker, CreateAndDestroyWorker, UpdateWorker].forEach((worker) => {
+  [CreateAndDestroyWorker].forEach((worker) => {
     describe(worker.id, () => {
       it('should run for render3', done => {
         runTableBenchmark({

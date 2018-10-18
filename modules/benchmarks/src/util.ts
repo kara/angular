@@ -44,7 +44,7 @@ export function profile(create: () => void, destroy: () => void, name: string) {
     window.console.profile(name);
     let duration = 0;
     let count = 0;
-    while (count++ < 150) {
+    while (count++ < 25) {
       const start = window.performance.now();
       create();
       duration += window.performance.now() - start;
