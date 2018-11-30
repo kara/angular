@@ -247,8 +247,7 @@ export function compileComponentFromMetadata(
       meta.viewQueries, directiveMatcher, directivesUsed, meta.pipes, pipesUsed, R3.namespaceHTML,
       meta.relativeContextFilePath, meta.i18nUseExternalIds);
 
-  const templateFunctionExpression = templateBuilder.buildTemplateFunction(
-      template.nodes, [], template.hasNgContent, template.ngContentSelectors);
+  const templateFunctionExpression = templateBuilder.buildTemplateFunction(template.nodes, []);
 
   // e.g. `consts: 2`
   definitionMap.set('consts', o.literal(templateBuilder.getConstCount()));
@@ -360,11 +359,7 @@ export function compileComponentFromRender2(
   const meta: R3ComponentMetadata = {
     ...directiveMetadataFromGlobalMetadata(component, outputCtx, reflector),
     selector: component.selector,
-    template: {
-      nodes: render3Ast.nodes,
-      hasNgContent: render3Ast.hasNgContent,
-      ngContentSelectors: render3Ast.ngContentSelectors,
-    },
+    template: {nodes: render3Ast.nodes},
     directives: [],
     pipes: typeMapToExpressionMap(pipeTypeByName, outputCtx),
     viewQueries: queriesFromGlobalMetadata(component.viewQueries, outputCtx),
