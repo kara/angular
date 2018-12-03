@@ -563,12 +563,12 @@ export class NodeInjector implements Injector {
     this._injectorIndex = getOrCreateNodeInjectorForNode(_tNode, _lView);
   }
 
-  get(token: any): any {
+  get(token: any, notFound?: any): any {
     const previousTNode = getPreviousOrParentTNode();
     const previousLView = getLView();
     setTNodeAndViewData(this._tNode, this._lView);
     try {
-      return getOrCreateInjectable(this._tNode, this._lView, token);
+      return getOrCreateInjectable(this._tNode, this._lView, token, InjectFlags.Default, notFound);
     } finally {
       setTNodeAndViewData(previousTNode, previousLView);
     }
