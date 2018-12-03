@@ -731,7 +731,7 @@ function setUpAttributes(native: RElement, attrs: TAttributes): void {
   while (i < attrs.length) {
     const attrName = attrs[i];
     if (attrName === AttributeMarker.SelectOnly) break;
-    if (attrName === NG_PROJECT_AS_ATTR_NAME) {
+    if (attrName === NG_PROJECT_AS_ATTR_NAME || (attrName as string)[0] === '@') {
       i += 2;
     } else {
       ngDevMode && ngDevMode.rendererSetAttribute++;
