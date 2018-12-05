@@ -120,6 +120,7 @@ import {InjectableAnimationEngine} from '../src/providers';
       // these tests are only mean't to be run within the DOM
       if (isNode) return;
 
+<<<<<<< HEAD
       it('should flush and fire callbacks when the zone becomes stable', (async) => {
         @Component({
           selector: 'my-cmp',
@@ -156,6 +157,45 @@ import {InjectableAnimationEngine} from '../src/providers';
           async();
         });
       });
+=======
+      fixmeIvy(`FW-800: Animation listeners are not invoked`)
+          .it('should flush and fire callbacks when the zone becomes stable', (async) => {
+            @Component({
+              selector: 'my-cmp',
+              template: '<div [@myAnimation]="exp" (@myAnimation.start)="onStart($event)"></div>',
+              animations: [trigger(
+                  'myAnimation',
+                  [transition(
+                      '* => state',
+                      [style({'opacity': '0'}), animate(500, style({'opacity': '1'}))])])],
+            })
+            class Cmp {
+              exp: any;
+              event: any;
+              onStart(event: any) { this.event = event; }
+            }
+
+            TestBed.configureTestingModule({
+              providers: [{provide: AnimationEngine, useClass: InjectableAnimationEngine}],
+              declarations: [Cmp]
+            });
+
+            const engine = TestBed.get(AnimationEngine);
+            const fixture = TestBed.createComponent(Cmp);
+            const cmp = fixture.componentInstance;
+            cmp.exp = 'state';
+            fixture.detectChanges();
+            fixture.whenStable().then(() => {
+              expect(cmp.event.triggerName).toEqual('myAnimation');
+              expect(cmp.event.phaseName).toEqual('start');
+              cmp.event = null;
+
+              engine.flush();
+              expect(cmp.event).toBeFalsy();
+              async();
+            });
+          });
+>>>>>>> 56f397463... fix(ivy): setting up animation properties correctly (FW-643)
 
       it('should properly insert/remove nodes through the animation renderer that do not contain animations',
          (async) => {
@@ -195,11 +235,21 @@ import {InjectableAnimationEngine} from '../src/providers';
            });
          });
 
+<<<<<<< HEAD
       it('should only queue up dom removals if the element itself contains a valid leave animation',
          () => {
            @Component({
              selector: 'my-cmp',
              template: `
+=======
+      fixmeIvy(
+          `FW-801: Components with animations throw with "Cannot read property 'hostElement' of undefined" error`)
+          .it('should only queue up dom removals if the element itself contains a valid leave animation',
+              () => {
+                @Component({
+                  selector: 'my-cmp',
+                  template: `
+>>>>>>> 56f397463... fix(ivy): setting up animation properties correctly (FW-643)
                <div #elm1 *ngIf="exp1"></div>
                <div #elm2 @animation1 *ngIf="exp2"></div>
                <div #elm3 @animation2 *ngIf="exp3"></div>
@@ -279,10 +329,18 @@ import {InjectableAnimationEngine} from '../src/providers';
       });
     });
 
+<<<<<<< HEAD
     it('should provide hooks at the start and end of change detection', () => {
       @Component({
         selector: 'my-cmp',
         template: `
+=======
+    fixmeIvy(`FW-802: Animation 'start' and 'end' hooks are invoked twice`)
+        .it('should provide hooks at the start and end of change detection', () => {
+          @Component({
+            selector: 'my-cmp',
+            template: `
+>>>>>>> 56f397463... fix(ivy): setting up animation properties correctly (FW-643)
           <div [@myAnimation]="exp"></div>
         `,
         animations: [trigger('myAnimation', [])]
