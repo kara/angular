@@ -919,6 +919,7 @@ export function elementAttribute(
     const lView = getLView();
     const renderer = lView[RENDERER];
     const element = getNativeByIndex(index, lView);
+    if (name[0] === '@') return;
     if (value == null) {
       ngDevMode && ngDevMode.rendererRemoveAttribute++;
       isProceduralRenderer(renderer) ? renderer.removeAttribute(element, name) :
