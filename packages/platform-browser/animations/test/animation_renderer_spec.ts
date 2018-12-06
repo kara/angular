@@ -121,6 +121,9 @@ import {InjectableAnimationEngine} from '../src/providers';
       if (isNode) return;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> dcb44e6de... fix(ivy): generate proper event listener names for animation events (FW-800) (#27525)
       it('should flush and fire callbacks when the zone becomes stable', (async) => {
         @Component({
           selector: 'my-cmp',
@@ -157,6 +160,7 @@ import {InjectableAnimationEngine} from '../src/providers';
           async();
         });
       });
+<<<<<<< HEAD
 =======
       fixmeIvy(`FW-800: Animation listeners are not invoked`)
           .it('should flush and fire callbacks when the zone becomes stable', (async) => {
@@ -196,6 +200,8 @@ import {InjectableAnimationEngine} from '../src/providers';
             });
           });
 >>>>>>> 56f397463... fix(ivy): setting up animation properties correctly (FW-643)
+=======
+>>>>>>> dcb44e6de... fix(ivy): generate proper event listener names for animation events (FW-800) (#27525)
 
       it('should properly insert/remove nodes through the animation renderer that do not contain animations',
          (async) => {
