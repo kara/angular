@@ -731,7 +731,7 @@ function setUpAttributes(native: RElement, attrs: TAttributes): void {
   while (i < attrs.length) {
     const attrName = attrs[i];
     if (attrName === AttributeMarker.SelectOnly) break;
-    if (attrName === NG_PROJECT_AS_ATTR_NAME || (attrName as string)[0] === '@') {
+    if (attrName === NG_PROJECT_AS_ATTR_NAME) {
       i += 2;
     } else {
       ngDevMode && ngDevMode.rendererSetAttribute++;
@@ -919,7 +919,6 @@ export function elementAttribute(
     const lView = getLView();
     const renderer = lView[RENDERER];
     const element = getNativeByIndex(index, lView);
-    if (name[0] === '@') return;
     if (value == null) {
       ngDevMode && ngDevMode.rendererRemoveAttribute++;
       isProceduralRenderer(renderer) ? renderer.removeAttribute(element, name) :
