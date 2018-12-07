@@ -5,16 +5,15 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
  */
-import {Injector} from '../di/injector';
 
+import {Injector} from '../di/injector';
 import {assertDefined} from './assert';
 import {discoverLocalRefs, getComponentAtNodeIndex, getContext, getDirectivesAtNodeIndex} from './context_discovery';
 import {LContext} from './interfaces/context';
 import {TElementNode} from './interfaces/node';
 import {CONTEXT, FLAGS, HOST, LView, LViewFlags, PARENT, RootContext, TVIEW} from './interfaces/view';
 import {readPatchedLView, stringify} from './util';
-import {NodeInjector} from './view_engine_compatibility';
-
+import {NodeInjector} from './di';
 
 /**
  * Returns the component instance associated with a given DOM host element.
