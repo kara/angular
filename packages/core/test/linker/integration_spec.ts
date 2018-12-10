@@ -1672,6 +1672,7 @@ function declareTests(config?: {useJit: boolean}) {
         expect(el.title).toBeFalsy();
       });
 
+<<<<<<< HEAD
       fixmeIvy('FW-711: elementProperty instruction should not be used in host bindings') &&
           it('should work when a directive uses hostProperty to update the DOM element', () => {
             TestBed.configureTestingModule(
@@ -1679,13 +1680,20 @@ function declareTests(config?: {useJit: boolean}) {
             const template = '<span [title]="ctxProp"></span>';
             TestBed.overrideComponent(MyComp, {set: {template}});
             const fixture = TestBed.createComponent(MyComp);
+=======
+      it('should work when a directive uses hostProperty to update the DOM element', () => {
+        TestBed.configureTestingModule({declarations: [MyComp, DirectiveWithTitleAndHostProperty]});
+        const template = '<span [title]="ctxProp"></span>';
+        TestBed.overrideComponent(MyComp, {set: {template}});
+        const fixture = TestBed.createComponent(MyComp);
+>>>>>>> 88ea15670... fix(ivy): host bindings should work if input has same name
 
-            fixture.componentInstance.ctxProp = 'TITLE';
-            fixture.detectChanges();
+        fixture.componentInstance.ctxProp = 'TITLE';
+        fixture.detectChanges();
 
-            const el = getDOM().querySelector(fixture.nativeElement, 'span');
-            expect(getDOM().getProperty(el, 'title')).toEqual('TITLE');
-          });
+        const el = getDOM().querySelector(fixture.nativeElement, 'span');
+        expect(getDOM().getProperty(el, 'title')).toEqual('TITLE');
+      });
     });
 
     describe('logging property updates', () => {
