@@ -242,11 +242,15 @@ import {InjectableAnimationEngine} from '../src/providers';
          });
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 3260d7bc2... fix(ivy): avoid destroy renderer method invocation for child views
       it('should only queue up dom removals if the element itself contains a valid leave animation',
          () => {
            @Component({
              selector: 'my-cmp',
              template: `
+<<<<<<< HEAD
 =======
       fixmeIvy(
           `FW-801: Components with animations throw with "Cannot read property 'hostElement' of undefined" error`)
@@ -256,6 +260,8 @@ import {InjectableAnimationEngine} from '../src/providers';
                   selector: 'my-cmp',
                   template: `
 >>>>>>> 56f397463... fix(ivy): setting up animation properties correctly (FW-643)
+=======
+>>>>>>> 3260d7bc2... fix(ivy): avoid destroy renderer method invocation for child views
                <div #elm1 *ngIf="exp1"></div>
                <div #elm2 @animation1 *ngIf="exp2"></div>
                <div #elm3 @animation2 *ngIf="exp3"></div>

@@ -186,7 +186,7 @@ export function createNodeAtIndex(
 export function createNodeAtIndex(
     index: number, type: TNodeType.Container, native: RComment, name: string | null,
     attrs: TAttributes | null): TContainerNode;
-export function createNodeAtIndex(T
+export function createNodeAtIndex(
     index: number, type: TNodeType.Projection, native: null, name: null,
     attrs: TAttributes | null): TProjectionNode;
 export function createNodeAtIndex(
