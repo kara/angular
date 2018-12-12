@@ -119,7 +119,7 @@ describe('discovery utils', () => {
             if (rf & RenderFlags.Create) {
               element(0, 'child');
             }
-          }, 1, 0, null, ['ngIf', '']);
+          }, 1, 0, 'child', ['ngIf', '']);
         }
         if (rf & RenderFlags.Update) {
           textBinding(1, bind(ctx.text));

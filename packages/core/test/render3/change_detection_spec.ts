@@ -133,7 +133,11 @@ describe('change detection', () => {
        */
       const App = createComponent('app', function(rf: RenderFlags, ctx: any) {
         if (rf & RenderFlags.Create) {
+<<<<<<< HEAD
           template(0, FooTemplate, 1, 0, '', null, ['foo', ''], templateRefExtractor);
+=======
+          template(0, FooTemplate, 2, 1, 'ng-template', null, ['foo', ''], templateRefExtractor);
+>>>>>>> 5ab3da55a... fix(ivy): provide an ability to match <ng-template> tags
           element(2, 'structural-comp');
         }
         if (rf & RenderFlags.Update) {
