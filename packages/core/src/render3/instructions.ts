@@ -191,7 +191,7 @@ export function createNodeAtIndex(
 export function createNodeAtIndex(
     index: number, type: TNodeType.Container, native: RComment, name: string | null,
     attrs: TAttributes | null): TContainerNode;
-export function createNodeAtIndex(
+export function createNodeAtIndex(T
     index: number, type: TNodeType.Projection, native: null, name: null,
     attrs: TAttributes | null): TProjectionNode;
 export function createNodeAtIndex(
@@ -209,6 +209,10 @@ export function createNodeAtIndex(
   const adjustedIndex = index + HEADER_OFFSET;
   ngDevMode &&
       assertLessThan(adjustedIndex, lView.length, `Slot should have been initialized with null`);
+  if (lView[adjustedIndex] !== null) {
+    debugger
+  }
+
   lView[adjustedIndex] = native;
 
   let tNode = tView.data[adjustedIndex] as TNode;
