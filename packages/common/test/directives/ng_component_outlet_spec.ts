@@ -11,7 +11,11 @@ import {NgComponentOutlet} from '@angular/common/src/directives/ng_component_out
 import {Compiler, Component, ComponentRef, Inject, InjectionToken, Injector, NO_ERRORS_SCHEMA, NgModule, NgModuleFactory, Optional, QueryList, TemplateRef, Type, ViewChild, ViewChildren, ViewContainerRef} from '@angular/core';
 import {TestBed, async} from '@angular/core/testing';
 import {expect} from '@angular/platform-browser/testing/src/matchers';
+<<<<<<< HEAD
 import {fixmeIvy} from '@angular/private/testing';
+=======
+import {modifiedInIvy} from '@angular/private/testing';
+>>>>>>> 6dc32f302... fix(ivy): process creation mode deeply before running update mode
 
 describe('insert/remove', () => {
 
@@ -107,17 +111,20 @@ describe('insert/remove', () => {
 
      }));
 
-  it('should resolve a with injector', async(() => {
-       let fixture = TestBed.createComponent(TestComponent);
 
-       fixture.componentInstance.cmpRef = null;
-       fixture.componentInstance.currentComponent = InjectedComponent;
-       fixture.detectChanges();
-       let cmpRef: ComponentRef<InjectedComponent> = fixture.componentInstance.cmpRef !;
-       expect(cmpRef).toBeAnInstanceOf(ComponentRef);
-       expect(cmpRef.instance).toBeAnInstanceOf(InjectedComponent);
-       expect(cmpRef.instance.testToken).toBeNull();
-     }));
+  modifiedInIvy('Static ViewChild and ContentChild queries are resolved in update mode')
+      .it('should resolve with an injector', async(() => {
+            let fixture = TestBed.createComponent(TestComponent);
+
+            // We are accessing a ViewChild (ngComponentOutlet) before change detection has run
+            fixture.componentInstance.cmpRef = null;
+            fixture.componentInstance.currentComponent = InjectedComponent;
+            fixture.detectChanges();
+            let cmpRef: ComponentRef<InjectedComponent> = fixture.componentInstance.cmpRef !;
+            expect(cmpRef).toBeAnInstanceOf(ComponentRef);
+            expect(cmpRef.instance).toBeAnInstanceOf(InjectedComponent);
+            expect(cmpRef.instance.testToken).toBeNull();
+          }));
 
   it('should render projectable nodes, if supplied', async(() => {
        const template = `<ng-template>projected foo</ng-template>${TEST_CMP_TEMPLATE}`;

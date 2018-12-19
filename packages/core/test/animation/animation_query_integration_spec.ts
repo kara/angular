@@ -13,6 +13,10 @@ import {MockAnimationDriver, MockAnimationPlayer} from '@angular/animations/brow
 import {CommonModule} from '@angular/common';
 import {Component, HostBinding, ViewChild} from '@angular/core';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
+<<<<<<< HEAD
+=======
+import {fixmeIvy, ivyEnabled} from '@angular/private/testing';
+>>>>>>> 6dc32f302... fix(ivy): process creation mode deeply before running update mode
 
 import {HostListener} from '../../src/metadata/directives';
 import {TestBed} from '../../testing';
@@ -1705,6 +1709,11 @@ import {fakeAsync, flushMicrotasks} from '../../testing/src/fake_async';
            TestBed.configureTestingModule({declarations: [ParentCmp, ChildCmp]});
            const fixture = TestBed.createComponent(ParentCmp);
            const cmp = fixture.componentInstance;
+
+           // In Ivy, change detection needs to run before the ViewQuery for cmp.child will resolve.
+           // Keeping this test enabled since we still want to test the animation logic in Ivy.
+           if (ivyEnabled) fixture.detectChanges();
+
            cmp.child.items = [4, 5, 6];
            fixture.detectChanges();
 

@@ -66,6 +66,7 @@ describe('Query API', () => {
           expect(asNativeElements(view.debugElement.children)).toHaveText('2|3|');
         });
 
+<<<<<<< HEAD
     fixmeIvy('FW-670: Internal Error: The name q is already defined in scope') &&
         it('should contain all direct child directives in the content dom', () => {
           const template =
@@ -115,20 +116,71 @@ describe('Query API', () => {
         it('should contain the first view child', () => {
           const template = '<needs-view-child #q></needs-view-child>';
           const view = createTestCmpAndDetectChanges(MyComp0, template);
+=======
+    it('should contain all direct child directives in the content dom', () => {
+      const template = '<needs-content-children #q><div text="foo"></div></needs-content-children>';
+      const view = createTestCmpAndDetectChanges(MyComp0, template);
 
-          const q: NeedsViewChild = view.debugElement.children[0].references !['q'];
-          expect(q.logs).toEqual([['setter', 'foo'], ['init', 'foo'], ['check', 'foo']]);
+      const q = view.debugElement.children[0].references !['q'];
+      view.detectChanges();
+      expect(q.textDirChildren.length).toEqual(1);
+      expect(q.numberOfChildrenAfterContentInit).toEqual(1);
+    });
 
-          q.shouldShow = false;
-          view.detectChanges();
-          expect(q.logs).toEqual([
-            ['setter', 'foo'], ['init', 'foo'], ['check', 'foo'], ['setter', null],
-            ['check', null]
-          ]);
-        });
+    it('should contain the first content child', () => {
+      const template =
+          '<needs-content-child #q><div *ngIf="shouldShow" text="foo"></div></needs-content-child>';
+      const view = createTestCmp(MyComp0, template);
+      view.componentInstance.shouldShow = true;
+      view.detectChanges();
+      const q: NeedsContentChild = view.debugElement.children[0].references !['q'];
+      expect(q.logs).toEqual([['setter', 'foo'], ['init', 'foo'], ['check', 'foo']]);
 
+      view.componentInstance.shouldShow = false;
+      view.detectChanges();
+      expect(q.logs).toEqual([
+        ['setter', 'foo'], ['init', 'foo'], ['check', 'foo'], ['setter', null], ['check', null]
+      ]);
+    });
+
+    fixmeIvy(
+        'FW-781 - Directives invocation sequence on root and nested elements is different in Ivy')
+        .it('should contain the first content child when target is on <ng-template> with embedded view (issue #16568)',
+            () => {
+              const template =
+                  '<div directive-needs-content-child><ng-template text="foo" [ngIf]="true"><div text="bar"></div></ng-template></div>' +
+                  '<needs-content-child #q><ng-template text="foo" [ngIf]="true"><div text="bar"></div></ng-template></needs-content-child>';
+              const view = createTestCmp(MyComp0, template);
+              view.detectChanges();
+              const q: NeedsContentChild = view.debugElement.children[1].references !['q'];
+              expect(q.child.text).toEqual('foo');
+              const directive: DirectiveNeedsContentChild =
+                  view.debugElement.children[0].injector.get(DirectiveNeedsContentChild);
+              expect(directive.child.text).toEqual('foo');
+            });
+
+    it('should contain the first view child', () => {
+      const template = '<needs-view-child #q></needs-view-child>';
+      const view = createTestCmpAndDetectChanges(MyComp0, template);
+>>>>>>> 6dc32f302... fix(ivy): process creation mode deeply before running update mode
+
+      const q: NeedsViewChild = view.debugElement.children[0].references !['q'];
+      expect(q.logs).toEqual([['setter', 'foo'], ['init', 'foo'], ['check', 'foo']]);
+
+      q.shouldShow = false;
+      view.detectChanges();
+      expect(q.logs).toEqual([
+        ['setter', 'foo'], ['init', 'foo'], ['check', 'foo'], ['setter', null], ['check', null]
+      ]);
+    });
+
+<<<<<<< HEAD
     fixmeIvy('FW-670: Internal Error: The name q is already defined in scope') &&
         it('should set static view and content children already after the constructor call', () => {
+=======
+    modifiedInIvy('Static ViewChild and ContentChild queries are resolved in update mode')
+        .it('should set static view and content children already after the constructor call', () => {
+>>>>>>> 6dc32f302... fix(ivy): process creation mode deeply before running update mode
           const template =
               '<needs-static-content-view-child #q><div text="contentFoo"></div></needs-static-content-view-child>';
           const view = createTestCmp(MyComp0, template);
@@ -141,6 +193,7 @@ describe('Query API', () => {
           expect(q.viewChild.text).toEqual('viewFoo');
         });
 
+<<<<<<< HEAD
     fixmeIvy('FW-670: Internal Error: The name q is already defined in scope') &&
         it('should contain the first view child across embedded views', () => {
           TestBed.overrideComponent(
@@ -152,23 +205,35 @@ describe('Query API', () => {
             }
           });
           const view = TestBed.createComponent(MyComp0);
+=======
+    it('should contain the first view child across embedded views', () => {
+      TestBed.overrideComponent(
+          MyComp0, {set: {template: '<needs-view-child #q></needs-view-child>'}});
+      TestBed.overrideComponent(NeedsViewChild, {
+        set: {
+          template:
+              '<div *ngIf="true"><div *ngIf="shouldShow" text="foo"></div></div><div *ngIf="shouldShow2" text="bar"></div>'
+        }
+      });
+      const view = TestBed.createComponent(MyComp0);
+>>>>>>> 6dc32f302... fix(ivy): process creation mode deeply before running update mode
 
-          view.detectChanges();
-          const q: NeedsViewChild = view.debugElement.children[0].references !['q'];
-          expect(q.logs).toEqual([['setter', 'foo'], ['init', 'foo'], ['check', 'foo']]);
+      view.detectChanges();
+      const q: NeedsViewChild = view.debugElement.children[0].references !['q'];
+      expect(q.logs).toEqual([['setter', 'foo'], ['init', 'foo'], ['check', 'foo']]);
 
-          q.shouldShow = false;
-          q.shouldShow2 = true;
-          q.logs = [];
-          view.detectChanges();
-          expect(q.logs).toEqual([['setter', 'bar'], ['check', 'bar']]);
+      q.shouldShow = false;
+      q.shouldShow2 = true;
+      q.logs = [];
+      view.detectChanges();
+      expect(q.logs).toEqual([['setter', 'bar'], ['check', 'bar']]);
 
-          q.shouldShow = false;
-          q.shouldShow2 = false;
-          q.logs = [];
-          view.detectChanges();
-          expect(q.logs).toEqual([['setter', null], ['check', null]]);
-        });
+      q.shouldShow = false;
+      q.shouldShow2 = false;
+      q.logs = [];
+      view.detectChanges();
+      expect(q.logs).toEqual([['setter', null], ['check', null]]);
+    });
 
     fixmeIvy('FW-670: Internal Error: The name q is already defined in scope') &&
         it('should contain all directives in the light dom when descendants flag is used', () => {
@@ -614,6 +679,7 @@ describe('Query API', () => {
   });
 
   describe('query over moved templates', () => {
+<<<<<<< HEAD
     fixmeIvy('FW-670: Internal Error: The name q is already defined in scope') &&
         it('should include manually projected templates in queries', () => {
           const template =
@@ -653,24 +719,54 @@ describe('Query API', () => {
           const view = createTestCmpAndDetectChanges(MyComp0, template);
           const q = view.debugElement.children[0].references !['q'] as ManualProjecting;
           expect(q.query.length).toBe(0);
+=======
+    it('should include manually projected templates in queries', () => {
+      const template =
+          '<manual-projecting #q><ng-template><div text="1"></div></ng-template></manual-projecting>';
+      const view = createTestCmpAndDetectChanges(MyComp0, template);
+      const q = view.debugElement.children[0].references !['q'];
+      expect(q.query.length).toBe(0);
 
-          const view1 = q.vc.createEmbeddedView(q.template, {'x': '1'});
-          const view2 = q.vc.createEmbeddedView(q.template, {'x': '2'});
-          view.detectChanges();
-          expect(q.query.map((d: TextDirective) => d.text)).toEqual(['1', '2']);
+      q.create();
+      view.detectChanges();
+      expect(q.query.map((d: TextDirective) => d.text)).toEqual(['1']);
 
-          q.vc.detach(1);
-          q.vc.detach(0);
+      q.destroy();
+      view.detectChanges();
+      expect(q.query.length).toBe(0);
+    });
 
-          view.detectChanges();
-          expect(q.query.map((d: TextDirective) => d.text)).toEqual(['1', '2']);
+    // Note: this test is just document our current behavior, which we do for performance reasons.
+    fixmeIvy('FW-853: Query results are cleared if embedded views are detached / moved')
+        .it('should not affect queries for projected templates if views are detached or moved',
+            () => {
+              const template = `<manual-projecting #q>
+              <ng-template let-x="x">
+                 <div [text]="x"></div>
+              </ng-template>
+          </manual-projecting>`;
+              const view = createTestCmpAndDetectChanges(MyComp0, template);
+              const q = view.debugElement.children[0].references !['q'] as ManualProjecting;
+              expect(q.query.length).toBe(0);
+>>>>>>> 6dc32f302... fix(ivy): process creation mode deeply before running update mode
 
-          q.vc.insert(view2);
-          q.vc.insert(view1);
+              const view1 = q.vc.createEmbeddedView(q.template, {'x': '1'});
+              const view2 = q.vc.createEmbeddedView(q.template, {'x': '2'});
+              view.detectChanges();
+              expect(q.query.map((d: TextDirective) => d.text)).toEqual(['1', '2']);
 
-          view.detectChanges();
-          expect(q.query.map((d: TextDirective) => d.text)).toEqual(['1', '2']);
-        });
+              q.vc.detach(1);
+              q.vc.detach(0);
+
+              view.detectChanges();
+              expect(q.query.map((d: TextDirective) => d.text)).toEqual(['1', '2']);
+
+              q.vc.insert(view2);
+              q.vc.insert(view1);
+
+              view.detectChanges();
+              expect(q.query.map((d: TextDirective) => d.text)).toEqual(['1', '2']);
+            });
 
     fixmeIvy('FW-670: Internal Error: The name q is already defined in scope') &&
         it('should remove manually projected templates if their parent view is destroyed', () => {

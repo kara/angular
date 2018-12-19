@@ -22,7 +22,16 @@ import {assertComponentType, assertDefined} from './assert';
 import {LifecycleHooksFeature, createRootComponent, createRootComponentView, createRootContext} from './component';
 import {getComponentDef} from './definition';
 import {NodeInjector} from './di';
-import {createLView, createNodeAtIndex, createTView, createViewNode, elementCreate, locateHostElement, refreshDescendantViews} from './instructions';
+import {
+  addToViewTree,
+  createLView,
+  createNodeAtIndex,
+  createTView,
+  createViewNode,
+  elementCreate,
+  locateHostElement,
+  refreshDescendantViews
+} from './instructions';
 import {ComponentDef, RenderFlags} from './interfaces/definition';
 import {TContainerNode, TElementContainerNode, TElementNode, TNode, TNodeType} from './interfaces/node';
 import {RElement, RendererFactory3, domRendererFactory3, isProceduralRenderer} from './interfaces/renderer';
@@ -198,9 +207,10 @@ export class ComponentFactory<T> extends viewEngine_ComponentFactory<T> {
       component = createRootComponent(
           componentView, this.componentDef, rootLView, rootContext, [LifecycleHooksFeature]);
 
-      refreshDescendantViews(rootLView, RenderFlags.Create);
+      addToViewTree(rootLView, HEADER_OFFSET, componentView);
+      refreshDescendantViews(rootLView);
     } finally {
-      leaveView(oldLView, true);
+      leaveView(oldLView);
       if (rendererFactory.end) rendererFactory.end();
     }
 

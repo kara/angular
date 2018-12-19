@@ -168,6 +168,9 @@
     "name": "checkNoChangesMode"
   },
   {
+    "name": "checkView"
+  },
+  {
     "name": "componentRefresh"
   },
   {
@@ -205,9 +208,6 @@
   },
   {
     "name": "defineComponent"
-  },
-  {
-    "name": "detectChangesInternal"
   },
   {
     "name": "diPublicInInjector"
@@ -250,9 +250,6 @@
   },
   {
     "name": "getContainerRenderParent"
-  },
-  {
-    "name": "getCreationMode"
   },
   {
     "name": "getDirectiveDef"
@@ -346,6 +343,9 @@
   },
   {
     "name": "isComponentDef"
+  },
+  {
+    "name": "isCreationMode"
   },
   {
     "name": "isFactory"
