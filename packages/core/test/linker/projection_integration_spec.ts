@@ -181,7 +181,22 @@ import {fixmeIvy} from '@angular/private/testing';
           expect(main.nativeElement).toHaveText('OUTER(INNER(INNERINNER(,BC)))');
           viewportDirective.show();
 
+<<<<<<< HEAD
           expect(main.nativeElement).toHaveText('OUTER(INNER(INNERINNER(A,BC)))');
+=======
+  fixmeIvy('FW-833: Directive / projected node matching against class name')
+      .it('should redistribute when the shadow dom changes', () => {
+        TestBed.configureTestingModule(
+            {declarations: [ConditionalContentComponent, ManualViewportDirective]});
+        TestBed.overrideComponent(MainComp, {
+          set: {
+            template: '<conditional-content>' +
+                '<div class="left">A</div>' +
+                '<div>B</div>' +
+                '<div>C</div>' +
+                '</conditional-content>'
+          }
+>>>>>>> 67475e3cf... fix(ivy): correct content projection with nested templates
         });
 
     fixmeIvy('unknown') && it('should redistribute when the shadow dom changes', () => {
@@ -268,6 +283,38 @@ import {fixmeIvy} from '@angular/private/testing';
       projectDirective.show(sourceDirective.templateRef);
       expect(main.nativeElement).toHaveText('START(A)END');
     });
+<<<<<<< HEAD
+=======
+    const main = TestBed.createComponent(MainComp);
+
+    const sourceDirective: ManualViewportDirective =
+        main.debugElement.queryAllNodes(By.directive(ManualViewportDirective))[0].injector.get(
+            ManualViewportDirective);
+    const projectDirective: ProjectDirective =
+        main.debugElement.queryAllNodes(By.directive(ProjectDirective))[0].injector.get(
+            ProjectDirective);
+    expect(main.nativeElement).toHaveText('SIMPLE()START()END');
+
+    projectDirective.show(sourceDirective.templateRef);
+    expect(main.nativeElement).toHaveText('SIMPLE()START(A)END');
+  });
+
+  fixmeIvy('FW-833: Directive / projected node matching against class name')
+      .it('should support moving ng-content around', () => {
+        TestBed.configureTestingModule({
+          declarations: [ConditionalContentComponent, ProjectDirective, ManualViewportDirective]
+        });
+        TestBed.overrideComponent(MainComp, {
+          set: {
+            template: '<conditional-content>' +
+                '<div class="left">A</div>' +
+                '<div>B</div>' +
+                '</conditional-content>' +
+                'START(<div project></div>)END'
+          }
+        });
+        const main = TestBed.createComponent(MainComp);
+>>>>>>> 67475e3cf... fix(ivy): correct content projection with nested templates
 
     it('should support moving projected light dom around', () => {
       TestBed.configureTestingModule(
@@ -354,7 +401,26 @@ import {fixmeIvy} from '@angular/private/testing';
           Tree, {set: {template: 'TREE({{depth}}:<tree2 *manual [depth]="depth+1"></tree2>)'}});
       const main = TestBed.createComponent(MainComp);
 
+<<<<<<< HEAD
       main.detectChanges();
+=======
+      const mainEl = main.nativeElement;
+      const div1 = getDOM().firstChild(mainEl);
+      const div2 = getDOM().createElement('div');
+      getDOM().appendChild(mainEl, div2);
+      expect(getDOM().getComputedStyle(div1).color).toEqual('rgb(255, 0, 0)');
+      expect(getDOM().getComputedStyle(div2).color).toEqual('rgb(0, 0, 0)');
+    });
+  }
+
+  fixmeIvy('FW-869: debugElement.queryAllNodes returns nodes in the wrong order')
+      .it('should support nested conditionals that contain ng-contents', () => {
+        TestBed.configureTestingModule(
+            {declarations: [ConditionalTextComponent, ManualViewportDirective]});
+        TestBed.overrideComponent(
+            MainComp, {set: {template: `<conditional-text>a</conditional-text>`}});
+        const main = TestBed.createComponent(MainComp);
+>>>>>>> 67475e3cf... fix(ivy): correct content projection with nested templates
 
       expect(main.nativeElement).toHaveText('TREE(0:)');
 
@@ -412,8 +478,74 @@ import {fixmeIvy} from '@angular/private/testing';
         expect(getDOM().getComputedStyle(div2).color).toEqual('rgb(255, 0, 0)');
       });
 
+<<<<<<< HEAD
       it('should support emulated style encapsulation', () => {
         TestBed.configureTestingModule({declarations: [OtherComp]});
+=======
+  it('should project nodes into nested templates when the main template doesn\'t have <ng-content>',
+     () => {
+
+       @Component({
+         selector: 'content-in-template',
+         template:
+             `(<ng-template manual><ng-content select="[id=left]"></ng-content></ng-template>)`
+       })
+       class ContentInATemplateComponent {
+       }
+
+
+       TestBed.configureTestingModule(
+           {declarations: [ContentInATemplateComponent, ManualViewportDirective]});
+       TestBed.overrideComponent(
+           MainComp,
+           {set: {template: `<content-in-template><div id="left">A</div></content-in-template>`}});
+
+       const main = TestBed.createComponent(MainComp);
+
+       main.detectChanges();
+       expect(main.nativeElement).toHaveText('()');
+
+       let viewportElement =
+           main.debugElement.queryAllNodes(By.directive(ManualViewportDirective))[0];
+       viewportElement.injector.get(ManualViewportDirective).show();
+       expect(main.nativeElement).toHaveText('(A)');
+     });
+
+  it('should project nodes into nested templates and the main template', () => {
+
+    @Component({
+      selector: 'content-in-main-and-template',
+      template:
+          `<ng-content></ng-content>(<ng-template manual><ng-content select="[id=left]"></ng-content></ng-template>)`
+    })
+    class ContentInMainAndTemplateComponent {
+    }
+
+
+    TestBed.configureTestingModule(
+        {declarations: [ContentInMainAndTemplateComponent, ManualViewportDirective]});
+    TestBed.overrideComponent(MainComp, {
+      set: {
+        template:
+            `<content-in-main-and-template><div id="left">A</div>B</content-in-main-and-template>`
+      }
+    });
+
+    const main = TestBed.createComponent(MainComp);
+
+    main.detectChanges();
+    expect(main.nativeElement).toHaveText('B()');
+
+    let viewportElement = main.debugElement.queryAllNodes(By.directive(ManualViewportDirective))[0];
+    viewportElement.injector.get(ManualViewportDirective).show();
+    expect(main.nativeElement).toHaveText('B(A)');
+  });
+
+  fixmeIvy('FW-833: Directive / projected node matching against class name')
+      .it('should project filled view containers into a view container', () => {
+        TestBed.configureTestingModule(
+            {declarations: [ConditionalContentComponent, ManualViewportDirective]});
+>>>>>>> 67475e3cf... fix(ivy): correct content projection with nested templates
         TestBed.overrideComponent(MainComp, {
           set: {
             template: '<div></div>',
