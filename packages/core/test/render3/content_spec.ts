@@ -8,11 +8,21 @@
 
 import {SelectorFlags} from '@angular/core/src/render3/interfaces/projection';
 
+<<<<<<< HEAD
 import {AttributeMarker, detectChanges} from '../../src/render3/index';
 import {bind, container, containerRefreshEnd, containerRefreshStart, element, elementContainerEnd, elementContainerStart, elementEnd, elementProperty, elementStart, embeddedViewEnd, embeddedViewStart, projection, projectionDef, template, text} from '../../src/render3/instructions';
 import {RenderFlags} from '../../src/render3/interfaces/definition';
 
 import {NgIf} from './common_with_def';
+=======
+import {AttributeMarker, defineDirective, detectChanges, directiveInject, load, query, queryRefresh, reference, templateRefExtractor} from '../../src/render3/index';
+
+import {bind, container, containerRefreshEnd, containerRefreshStart, element, elementContainerEnd, elementContainerStart, elementEnd, elementProperty, elementStart, embeddedViewEnd, embeddedViewStart, projection, projectionDef, template, text, textBinding, interpolation1} from '../../src/render3/instructions';
+import {RenderFlags} from '../../src/render3/interfaces/definition';
+
+import {TemplateRef, ViewContainerRef, QueryList} from '@angular/core';
+import {NgIf, NgForOf} from './common_with_def';
+>>>>>>> 952e15042... fix(ivy): ng-content tags in re-inserted templates should walk declaration tree
 import {ComponentFixture, createComponent, getDirectiveOnNode, renderComponent, toHtml} from './render_util';
 
 describe('content projection', () => {
@@ -931,6 +941,154 @@ describe('content projection', () => {
     expect(fixture.html).toEqual('<child>Before-<div>A</div>Some text-After</child>');
   });
 
+<<<<<<< HEAD
+=======
+  it('should project into dynamic views with specific selectors', () => {
+    /**
+     * <ng-content></ng-content>
+     * Before-
+     * <ng-template [ngIf]="showing">
+     *     <ng-content select="div"></ng-content>
+     * </ng-template>
+     * -After
+     */
+    const Child = createComponent('child', function(rf: RenderFlags, ctx: any) {
+      if (rf & RenderFlags.Create) {
+        projectionDef([[['div']]], ['div']);
+        projection(0);
+        text(1, 'Before-');
+        template(2, IfTemplate, 1, 0, '', [AttributeMarker.SelectOnly, 'ngIf']);
+        text(3, '-After');
+      }
+      if (rf & RenderFlags.Update) {
+        elementProperty(2, 'ngIf', bind(ctx.showing));
+      }
+
+    }, 4, 1, [NgIf]);
+
+    function IfTemplate(rf1: RenderFlags) {
+      if (rf1 & RenderFlags.Create) {
+        projection(0, 1);
+      }
+    }
+
+    let child: {showing: boolean};
+    /**
+     * <child>
+     *     <div>A</div>
+     *     <span>B</span>
+     * </child>
+     */
+    const App = createComponent('app', function(rf: RenderFlags, ctx: any) {
+      if (rf & RenderFlags.Create) {
+        elementStart(0, 'child');
+        {
+          elementStart(1, 'div');
+          { text(2, 'A'); }
+          elementEnd();
+          elementStart(3, 'span');
+          { text(4, 'B'); }
+          elementEnd();
+        }
+        elementEnd();
+
+        // testing
+        child = getDirectiveOnNode(0);
+      }
+    }, 5, 0, [Child]);
+
+    const fixture = new ComponentFixture(App);
+    child !.showing = true;
+    fixture.update();
+    expect(fixture.html).toEqual('<child><span>B</span>Before-<div>A</div>-After</child>');
+
+    child !.showing = false;
+    fixture.update();
+    expect(fixture.html).toEqual('<child><span>B</span>Before--After</child>');
+
+    child !.showing = true;
+    fixture.update();
+    expect(fixture.html).toEqual('<child><span>B</span>Before-<div>A</div>-After</child>');
+  });
+
+  it('should project if <ng-content> is in a template that has different declaration/insertion points',
+     () => {
+       let triggerDir !: Trigger;
+
+       function NgTemplate(rf: RenderFlags, ctx: any) {
+         if (rf & RenderFlags.Create) {
+           projection(0);
+         }
+       }
+
+       /**
+        * <ng-template>
+        *     <ng-content></ng-content>
+        * </ng-template>
+        */
+       const Comp = createComponent(
+           'comp',
+           (rf: RenderFlags, ctx: any) => {
+             if (rf & RenderFlags.Create) {
+               projectionDef();
+               template(1, NgTemplate, 1, 0, 'ng-template', null, null, templateRefExtractor);
+             }
+           },
+           2, 0, [], [],
+           function(rf: RenderFlags, ctx: any) {
+             /**  @ViewChild(TemplateRef) template: TemplateRef<any>  */
+             if (rf & RenderFlags.Create) {
+               query(0, TemplateRef as any, true);
+             }
+             if (rf & RenderFlags.Update) {
+               let tmp: any;
+               queryRefresh(tmp = load<QueryList<any>>(0)) && (ctx.template = tmp.first);
+             }
+           });
+
+       class Trigger {
+         // @Input()
+         trigger: any;
+
+         constructor(public vcr: ViewContainerRef) {}
+
+         open() { this.vcr.createEmbeddedView(this.trigger.template); }
+
+         static ngComponentDef = defineDirective({
+           type: Trigger,
+           selectors: [['', 'trigger', '']],
+           factory: () => triggerDir = new Trigger(directiveInject(ViewContainerRef as any)),
+           inputs: {trigger: 'trigger'}
+         });
+       }
+
+       /**
+        * <button [trigger]="comp"></button>
+        * <comp #comp>
+        *    Some content
+        * </comp>
+        */
+       const App = createComponent('app', (rf: RenderFlags, ctx: any) => {
+         if (rf & RenderFlags.Create) {
+           element(0, 'button', [AttributeMarker.SelectOnly, 'trigger']);
+           elementStart(1, 'comp', null, ['comp', '']);
+           { text(3, 'Some content'); }
+           elementEnd();
+         }
+         if (rf & RenderFlags.Update) {
+           const comp = reference(2);
+           elementProperty(0, 'trigger', bind(comp));
+         }
+       }, 4, 1, [Comp, Trigger]);
+
+       const fixture = new ComponentFixture(App);
+       expect(fixture.html).toEqual(`<button></button><comp></comp>`);
+
+       triggerDir.open();
+       expect(fixture.html).toEqual(`<button></button>Some content<comp></comp>`);
+     });
+
+>>>>>>> 952e15042... fix(ivy): ng-content tags in re-inserted templates should walk declaration tree
   it('should project nodes into the last ng-content', () => {
     /**
      * <div><ng-content></ng-content></div>

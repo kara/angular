@@ -125,12 +125,13 @@ export class ComponentFactory<T> extends viewEngine_ComponentFactory<T> {
     const isInternalRootView = rootSelectorOrNode === undefined;
 
     let rendererFactory: RendererFactory3;
-    let sanitizer: Sanitizer|null = null;
+    const rootViewInjector =
+        ngModule ? createChainedInjector(injector, ngModule.injector) : injector;
 
-    if (ngModule) {
-      rendererFactory = ngModule.injector.get(RendererFactory2) as RendererFactory3;
-      sanitizer = ngModule.injector.get(Sanitizer, null);
-    } else {
+    rendererFactory = rootViewInjector.get(RendererFactory2) as RendererFactory3;
+    let sanitizer: Sanitizer | null = rootViewInjector.get(Sanitizer, null);
+
+    if (!rendererFactory) {
       rendererFactory = domRendererFactory3;
     }
 
@@ -144,8 +145,6 @@ export class ComponentFactory<T> extends viewEngine_ComponentFactory<T> {
         ngModule && !isInternalRootView ? ngModule.injector.get(ROOT_CONTEXT) : createRootContext();
 
     const renderer = rendererFactory.createRenderer(hostRNode, this.componentDef);
-    const rootViewInjector =
-        ngModule ? createChainedInjector(injector, ngModule.injector) : injector;
 
     if (rootSelectorOrNode && hostRNode) {
       ngDevMode && ngDevMode.rendererSetAttribute++;

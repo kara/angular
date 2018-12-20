@@ -13,7 +13,7 @@ import {ACTIVE_INDEX, LContainer} from './interfaces/container';
 import {LContext, MONKEY_PATCH_KEY_NAME} from './interfaces/context';
 import {ComponentDef, DirectiveDef} from './interfaces/definition';
 import {NO_PARENT_INJECTOR, RelativeInjectorLocation, RelativeInjectorLocationFlags} from './interfaces/injector';
-import {TContainerNode, TElementNode, TNode, TNodeFlags} from './interfaces/node';
+import {TContainerNode, TElementNode, TNode, TNodeFlags, TNodeType} from './interfaces/node';
 import {RComment, RElement, RText} from './interfaces/renderer';
 import {StylingContext} from './interfaces/styling';
 import {CONTEXT, DECLARATION_VIEW, FLAGS, HEADER_OFFSET, HOST, HOST_NODE, LView, LViewFlags, PARENT, RootContext, TData, TVIEW, TView} from './interfaces/view';
@@ -255,3 +255,23 @@ export function addAllToArray(items: any[], arr: any[]) {
     arr.push(items[i]);
   }
 }
+
+
+/**
+ * Given a current view, finds the nearest component's host (LElement).
+ *
+ * @param lView LView for which we want a host element node
+ * @returns The host node
+ */
+export function findComponentView(lView: LView): LView {
+  let rootTNode = lView[HOST_NODE];
+
+  while (rootTNode && rootTNode.type === TNodeType.View) {
+    ngDevMode && assertDefined(lView[DECLARATION_VIEW], 'lView[DECLARATION_VIEW]');
+    lView = lView[DECLARATION_VIEW] !;
+    rootTNode = lView[HOST_NODE];
+  }
+
+  return lView;
+}
+
