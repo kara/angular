@@ -13,7 +13,23 @@ import {LContainer, NATIVE, RENDER_PARENT, VIEWS, unusedValueExportToPlacateAjd 
 import {TContainerNode, TElementContainerNode, TElementNode, TNode, TNodeFlags, TNodeType, TViewNode, unusedValueExportToPlacateAjd as unused2} from './interfaces/node';
 import {unusedValueExportToPlacateAjd as unused3} from './interfaces/projection';
 import {ProceduralRenderer3, RComment, RElement, RNode, RText, Renderer3, isProceduralRenderer, unusedValueExportToPlacateAjd as unused4} from './interfaces/renderer';
-import {CLEANUP, CONTAINER_INDEX, FLAGS, HEADER_OFFSET, HOST_NODE, HookData, LView, LViewFlags, NEXT, PARENT, QUERIES, RENDERER, TVIEW, unusedValueExportToPlacateAjd as unused5} from './interfaces/view';
+import {
+  CLEANUP,
+  CONTAINER_INDEX,
+  FLAGS,
+  HEADER_OFFSET,
+  HOST_NODE,
+  HookData,
+  LView,
+  LViewFlags,
+  NEXT,
+  PARENT,
+  QUERIES,
+  RENDERER,
+  TVIEW,
+  unusedValueExportToPlacateAjd as unused5,
+  DECLARATION_VIEW
+} from './interfaces/view';
 import {assertNodeType} from './node_assert';
 import {getNativeByTNode, isLContainer, isRootView, readElementValue, stringify} from './util';
 
@@ -206,7 +222,7 @@ export function findComponentView(lView: LView): LView {
 
   while (rootTNode && rootTNode.type === TNodeType.View) {
     ngDevMode && assertDefined(lView[PARENT], 'lView.parent');
-    lView = lView[PARENT] !;
+    lView = lView[DECLARATION_VIEW] !;
     rootTNode = lView[HOST_NODE];
   }
 
