@@ -71,7 +71,8 @@ export function compileComponent(type: Type<any>, metadata: Component): void {
           interpolation: metadata.interpolation,
           viewProviders: metadata.viewProviders || null,
         };
-        ngComponentDef = compiler.compileComponent(angularCoreEnv, sourceMapUrl, meta);
+        const templateUrl = metadata.templateUrl || `ng:///${renderStringify(type)}/template.html`;
+        ngComponentDef = compiler.compileComponent(angularCoreEnv, templateUrl, meta);
 
         // When NgModule decorator executed, we enqueued the module definition such that
         // it would only dequeue and add itself as module scope to all of its declarations,
