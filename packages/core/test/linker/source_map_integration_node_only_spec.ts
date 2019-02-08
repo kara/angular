@@ -6,9 +6,8 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {ResourceLoader} from '@angular/compiler';
+import {ResourceLoader, SourceMap} from '@angular/compiler';
 import {JitEvaluator} from '@angular/compiler/src/output/output_jit';
-import {SourceMap} from '@angular/compiler/src/output/source_map';
 import {escapeRegExp} from '@angular/compiler/src/util';
 import {extractSourceMap, originalPositionFor} from '@angular/compiler/testing/src/output/source_map_util';
 import {MockResourceLoader} from '@angular/compiler/testing/src/resource_loader_mock';
@@ -19,13 +18,24 @@ import {TestBed, fakeAsync, tick} from '@angular/core/testing';
 import {fixmeIvy, modifiedInIvy, onlyInIvy} from '@angular/private/testing';
 
 describe('jit source mapping', () => {
-  let jitSpy: JitSourceSpy;
   let resourceLoader: MockResourceLoader;
+  let jitEvaluator: MockJitEvaluator;
 
   beforeEach(() => {
-    jitSpy = new JitSourceSpy();
     resourceLoader = new MockResourceLoader();
-    TestBed.configureCompiler({providers: [{provide: ResourceLoader, useValue: resourceLoader}]});
+    jitEvaluator = new MockJitEvaluator();
+    TestBed.configureCompiler({
+      providers: [
+        {
+          provide: ResourceLoader,
+          useValue: resourceLoader,
+        },
+        {
+          provide: JitEvaluator,
+          useValue: jitEvaluator,
+        }
+      ]
+    });
   });
 
   modifiedInIvy('Generated filenames and stack traces have changed in ivy')
@@ -78,7 +88,7 @@ describe('jit source mapping', () => {
 
                compileAndCreateComponent(MyComp);
 
-               const sourceMap = jitSpy.getSourceMap(ngFactoryUrl);
+               const sourceMap = jitEvaluator.getSourceMap(ngFactoryUrl);
                expect(sourceMap.sources).toEqual([ngFactoryUrl, ngUrl]);
                expect(sourceMap.sourcesContent).toEqual([' ', template]);
              }));
@@ -104,7 +114,8 @@ describe('jit source mapping', () => {
                  error = e;
                }
                // The error should be logged from the element
-               expect(jitSpy.getSourcePositionForStack(getErrorLoggerStack(error), ngFactoryUrl))
+               expect(
+                   jitEvaluator.getSourcePositionForStack(getErrorLoggerStack(error), ngFactoryUrl))
                    .toEqual({
                      line: 2,
                      column: 4,
@@ -136,7 +147,8 @@ describe('jit source mapping', () => {
                  error = e;
                }
                // The error should be logged from the 2nd-element
-               expect(jitSpy.getSourcePositionForStack(getErrorLoggerStack(error), ngFactoryUrl))
+               expect(
+                   jitEvaluator.getSourcePositionForStack(getErrorLoggerStack(error), ngFactoryUrl))
                    .toEqual({
                      line: 1,
                      column: 19,
@@ -161,13 +173,14 @@ describe('jit source mapping', () => {
                  error = e;
                }
                // the stack should point to the binding
-               expect(jitSpy.getSourcePositionForStack(error.stack, ngFactoryUrl)).toEqual({
+               expect(jitEvaluator.getSourcePositionForStack(error.stack, ngFactoryUrl)).toEqual({
                  line: 2,
                  column: 12,
                  source: ngUrl,
                });
                // The error should be logged from the element
-               expect(jitSpy.getSourcePositionForStack(getErrorLoggerStack(error), ngFactoryUrl))
+               expect(
+                   jitEvaluator.getSourcePositionForStack(getErrorLoggerStack(error), ngFactoryUrl))
                    .toEqual({
                      line: 2,
                      column: 4,
@@ -191,13 +204,14 @@ describe('jit source mapping', () => {
                comp.debugElement.children[0].children[0].triggerEventHandler('click', 'EVENT');
                expect(error).toBeTruthy();
                // the stack should point to the binding
-               expect(jitSpy.getSourcePositionForStack(error.stack, ngFactoryUrl)).toEqual({
+               expect(jitEvaluator.getSourcePositionForStack(error.stack, ngFactoryUrl)).toEqual({
                  line: 2,
                  column: 12,
                  source: ngUrl,
                });
                // The error should be logged from the element
-               expect(jitSpy.getSourcePositionForStack(getErrorLoggerStack(error), ngFactoryUrl))
+               expect(
+                   jitEvaluator.getSourcePositionForStack(getErrorLoggerStack(error), ngFactoryUrl))
                    .toEqual({
                      line: 2,
                      column: 4,
@@ -263,7 +277,7 @@ describe('jit source mapping', () => {
 
            resolveCompileAndCreateComponent(MyComp, template);
 
-           const sourceMap = jitSpy.getSourceMap(generatedUrl);
+           const sourceMap = jitEvaluator.getSourceMap(generatedUrl);
            expect(sourceMap.sources).toEqual([generatedUrl, ngUrl]);
            expect(sourceMap.sourcesContent).toEqual([' ', template]);
          }));
@@ -289,7 +303,7 @@ describe('jit source mapping', () => {
              error = e;
            }
            // The error should be logged from the element
-           expect(jitSpy.getSourcePositionForStack(error.stack, generatedUrl)).toEqual({
+           expect(jitEvaluator.getSourcePositionForStack(error.stack, generatedUrl)).toEqual({
              line: 2,
              column: 4,
              source: ngUrl,
@@ -320,7 +334,7 @@ describe('jit source mapping', () => {
              error = e;
            }
            // The error should be logged from the 2nd-element
-           expect(jitSpy.getSourcePositionForStack(error.stack, generatedUrl)).toEqual({
+           expect(jitEvaluator.getSourcePositionForStack(error.stack, generatedUrl)).toEqual({
              line: 1,
              column: 19,
              source: ngUrl,
@@ -344,7 +358,7 @@ describe('jit source mapping', () => {
              error = e;
            }
            // the stack should point to the binding
-           expect(jitSpy.getSourcePositionForStack(error.stack, generatedUrl)).toEqual({
+           expect(jitEvaluator.getSourcePositionForStack(error.stack, generatedUrl)).toEqual({
              line: 2,
              column: 12,
              source: ngUrl,
@@ -371,7 +385,7 @@ describe('jit source mapping', () => {
            }
            expect(error).toBeTruthy();
            // the stack should point to the binding
-           expect(jitSpy.getSourcePositionForStack(error.stack, generatedUrl)).toEqual({
+           expect(jitEvaluator.getSourcePositionForStack(error.stack, generatedUrl)).toEqual({
              line: 2,
              column: 21,
              source: ngUrl,
@@ -414,23 +428,18 @@ describe('jit source mapping', () => {
   }
 
   /**
-   * A helper class that captures the sources that have been JIT compiled.
-   */
-  class JitSourceSpy {
-    private spy: jasmine.Spy;
-    private _sources: string[]|undefined = undefined;
+  * A helper class that captures the sources that have been JIT compiled.
+  */
+  class MockJitEvaluator extends JitEvaluator {
+    sources: string[] = [];
 
-    constructor() { this.spy = spyOn(JitEvaluator, 'callJitFunction').and.callThrough(); }
-
-    /**
-     * An array of strings, where each string is the source of a JIT compilation.
-     */
-    get sources() {
-      if (!this._sources) {
-        this._sources = this.spy.calls.all().map(call => call.args[0].toString());
-      }
-      return this._sources;
+    executeFunction(fn: Function, args: any[]) {
+      // Capture the source that has been generated.
+      this.sources.push(fn.toString());
+      // Then execute it anyway.
+      return super.executeFunction(fn, args);
     }
+
     /**
      * Get the source-map for a specified JIT compiled file.
      * @param genFile the URL of the file whose source-map we want.
