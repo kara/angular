@@ -6,7 +6,7 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {ConstantPool, CssSelector, DEFAULT_INTERPOLATION_CONFIG, DomElementSchemaRegistry, ElementSchemaRegistry, Expression, ExternalExpr, InterpolationConfig, R3ComponentMetadata, R3DirectiveMetadata, SelectorMatcher, Statement, TmplAstNode, WrappedNodeExpr, compileComponentFromMetadata, makeBindingParser, parseTemplate} from '@angular/compiler';
+import {ConstantPool, CssSelector, DEFAULT_INTERPOLATION_CONFIG, DomElementSchemaRegistry, Expression, ExternalExpr, InterpolationConfig, LexerRange, R3ComponentMetadata, SelectorMatcher, Statement, TmplAstNode, WrappedNodeExpr, compileComponentFromMetadata, makeBindingParser, parseTemplate} from '@angular/compiler';
 import * as path from 'path';
 import * as ts from 'typescript';
 
@@ -134,7 +134,7 @@ export class ComponentDecoratorHandler implements
 
     let templateStr: string|null = null;
     let templateUrl: string = '';
-    let templateRange: [number, number]|undefined;
+    let templateRange: LexerRange|undefined;
     let escapedString: boolean = false;
 
     if (component.has('templateUrl')) {
@@ -158,7 +158,7 @@ export class ComponentDecoratorHandler implements
       if (ts.isStringLiteral(templateExpr) || ts.isNoSubstitutionTemplateLiteral(templateExpr)) {
         // the start and end of the `templateExpr` node includes the quotation marks, which we must
         // strip
-        templateRange = [templateExpr.getStart() + 1, templateExpr.getEnd() - 1];
+        templateRange = getTemplateRange(templateExpr);
         templateStr = templateExpr.getSourceFile().text;
         templateUrl = relativeContextFilePath;
         escapedString = true;
@@ -424,4 +424,16 @@ export class ComponentDecoratorHandler implements
     // Check whether the import is legal.
     return this.cycleAnalyzer.wouldCreateCycle(origin, imported);
   }
+}
+
+function getTemplateRange(templateExpr: ts.Expression) {
+  const startPos = templateExpr.getStart() + 1;
+  const {line, character} =
+      ts.getLineAndCharacterOfPosition(templateExpr.getSourceFile(), startPos);
+  return {
+    startPos,
+    startLine: line,
+    startCol: character,
+    endPos: templateExpr.getEnd() - 1,
+  };
 }
