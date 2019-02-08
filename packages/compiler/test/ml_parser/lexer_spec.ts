@@ -59,7 +59,7 @@ import {ParseLocation, ParseSourceFile, ParseSourceSpan} from '../../src/parse_u
       it('should only process the text within the range', () => {
         expect(tokenizeAndHumanizeSourceSpans(
                    'pre 1\npre 2\npre 3 `line 1\nline 2\nline 3` post 1\n post 2\n post 3',
-                   {range: [19, 39]}))
+                   {range: {startPos: 19, startLine: 2, startCol: 7, endPos: 39}}))
             .toEqual([
               [lex.TokenType.TEXT, 'line 1\nline 2\nline 3'],
               [lex.TokenType.EOF, ''],
@@ -69,7 +69,7 @@ import {ParseLocation, ParseSourceFile, ParseSourceSpan} from '../../src/parse_u
       it('should take into account preceding (non-processed) lines and columns', () => {
         expect(tokenizeAndHumanizeLineColumn(
                    'pre 1\npre 2\npre 3 `line 1\nline 2\nline 3` post 1\n post 2\n post 3',
-                   {range: [19, 39]}))
+                   {range: {startPos: 19, startLine: 2, startCol: 7, endPos: 39}}))
             .toEqual([
               [lex.TokenType.TEXT, '2:7'],
               [lex.TokenType.EOF, '4:6'],
