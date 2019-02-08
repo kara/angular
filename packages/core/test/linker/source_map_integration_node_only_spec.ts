@@ -7,11 +7,13 @@
  */
 
 import {ResourceLoader, SourceMap} from '@angular/compiler';
+import {CompilerFacadeImpl} from '@angular/compiler/src/jit_compiler_facade';
 import {JitEvaluator} from '@angular/compiler/src/output/output_jit';
 import {escapeRegExp} from '@angular/compiler/src/util';
 import {extractSourceMap, originalPositionFor} from '@angular/compiler/testing/src/output/source_map_util';
 import {MockResourceLoader} from '@angular/compiler/testing/src/resource_loader_mock';
 import {Attribute, Component, Directive, ErrorHandler, ɵglobal} from '@angular/core';
+import {CompilerFacade, ExportedCompilerFacade} from '@angular/core/src/compiler/compiler_facade';
 import {getErrorLogger} from '@angular/core/src/errors';
 import {resolveComponentResources} from '@angular/core/src/metadata/resource_loading';
 import {TestBed, fakeAsync, tick} from '@angular/core/testing';
@@ -224,6 +226,9 @@ describe('jit source mapping', () => {
 
   onlyInIvy('Generated filenames and stack traces have changed in ivy').describe('(Ivy)', () => {
 
+    beforeEach(() => overrideCompilerFacade());
+    afterEach(() => recoverCompilerFacade());
+
     describe('inline templates', () => {
       const ngUrl = 'ng:///MyComp/template.html';
       function templateDecorator(template: string) { return {template}; }
@@ -414,6 +419,21 @@ describe('jit source mapping', () => {
   function resolveCompileAndCreateComponent(comType: any, template: string) {
     resolveComponentResources(createResolver(template));
     return compileAndCreateComponent(comType);
+  }
+
+  let ɵcompilerFacade: CompilerFacade;
+  function overrideCompilerFacade() {
+    const ng: ExportedCompilerFacade = (global as any).ng;
+    if (ng) {
+      ɵcompilerFacade = ng.ɵcompilerFacade;
+      ng.ɵcompilerFacade = new CompilerFacadeImpl(jitEvaluator);
+    }
+  }
+  function recoverCompilerFacade() {
+    if (ɵcompilerFacade) {
+      const ng: ExportedCompilerFacade = (global as any).ng;
+      ng.ɵcompilerFacade = ɵcompilerFacade;
+    }
   }
 
   interface TestConfig {
