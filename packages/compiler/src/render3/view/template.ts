@@ -1574,6 +1574,11 @@ export interface ParseTemplateOptions {
    * How to parse interpolation markers.
    */
   interpolationConfig?: InterpolationConfig;
+  /**
+   * The start and end point of the text to parse within the `source` string.
+   * The entire `source` string is parsed if this is not provided.
+   * */
+  range?: [number, number];
 }
 
 /**
