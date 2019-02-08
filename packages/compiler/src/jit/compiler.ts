@@ -49,8 +49,8 @@ export class JitCompiler {
       private _metadataResolver: CompileMetadataResolver, private _templateParser: TemplateParser,
       private _styleCompiler: StyleCompiler, private _viewCompiler: ViewCompiler,
       private _ngModuleCompiler: NgModuleCompiler, private _summaryResolver: SummaryResolver<Type>,
-      private _reflector: CompileReflector, private _compilerConfig: CompilerConfig,
-      private _console: Console,
+      private _reflector: CompileReflector, private _jitEvaluator: JitEvaluator,
+      private _compilerConfig: CompilerConfig, private _console: Console,
       private getExtraNgModuleProviders: (ngModule: any) => CompileProviderMetadata[]) {}
 
   compileModuleSync(moduleType: Type): object {
@@ -322,7 +322,7 @@ export class JitCompiler {
     if (!this._compilerConfig.useJit) {
       return interpretStatements(statements, this._reflector);
     } else {
-      return JitEvaluator.jitStatements(
+      return this._jitEvaluator.evaluateStatements(
           sourceUrl, statements, this._reflector, this._compilerConfig.jitDevMode);
     }
   }

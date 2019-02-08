@@ -17,17 +17,36 @@ import * as o from './output_ast';
  * A helper class to manage the evaluation of JIT generated code.
  */
 export class JitEvaluator {
-  static jitStatements(
+  /**
+   *
+   * @param sourceUrl The URL of the generated code.
+   * @param statements An array of Angular statement AST nodes to be evaluated.
+   * @param reflector A helper used when converting the statements to executable code.
+   * @param createSourceMaps If true then create a source-map for the generated code and include it
+   * inline as a source-map comment.
+   * @returns A map of all the variables in the generated code.
+   */
+  evaluateStatements(
       sourceUrl: string, statements: o.Statement[], reflector: CompileReflector,
       createSourceMaps: boolean): {[key: string]: any} {
     const converter = new JitEmitterVisitor(reflector);
     const ctx = EmitterVisitorContext.createRoot();
     converter.visitAllStatements(statements, ctx);
     converter.createReturnStmt(ctx);
-    return JitEvaluator.evalJitFunction(sourceUrl, ctx, converter.getArgs(), createSourceMaps);
+    return this.evaluateCode(sourceUrl, ctx, converter.getArgs(), createSourceMaps);
   }
 
-  static evalJitFunction(
+  /**
+   * Evaluate a piece of JIT generated code.
+   * @param sourceUrl The URL of this generated code.
+   * @param ctx A context object that contains an AST of the code to be evaluated.
+   * @param vars A map containing the names and values of variables that the evaluated code might
+   * reference.
+   * @param createSourceMap If true then create a source-map for the generated code and include it
+   * inline as a source-map comment.
+   * @returns The result of evaluating the code.
+   */
+  evaluateCode(
       sourceUrl: string, ctx: EmitterVisitorContext, vars: {[key: string]: any},
       createSourceMap: boolean): any {
     let fnBody = `${ctx.toSource()}\n//# sourceURL=${sourceUrl}`;
@@ -48,12 +67,25 @@ export class JitEvaluator {
       fnBody += `\n${ctx.toSourceMapGenerator(sourceUrl, headerLines).toJsComment()}`;
     }
     const fn = new Function(...fnArgNames.concat(fnBody));
-    return JitEvaluator.callJitFunction(fn, fnArgValues);
+    return this.executeFunction(fn, fnArgValues);
   }
 
-  static callJitFunction(fn: Function, args: any[]) { return fn(...args); }
+  /**
+   * Execute a JIT generated function by calling it.
+   *
+   * This method can be overridden in tests to capture the functions that are generated
+   * by this `JitEvaluator` class.
+   *
+   * @param fn A function to execute.
+   * @param args The arguments to pass to the function being executed.
+   * @returns The return value of the executed function.
+   */
+  executeFunction(fn: Function, args: any[]) { return fn(...args); }
 }
 
+/**
+ * An Angular AST visitor that converts AST nodes into executable JavaScript code.
+ */
 export class JitEmitterVisitor extends AbstractJsEmitterVisitor {
   private _evalArgNames: string[] = [];
   private _evalArgValues: any[] = [];
