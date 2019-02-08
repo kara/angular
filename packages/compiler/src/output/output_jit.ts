@@ -13,37 +13,45 @@ import {EmitterVisitorContext} from './abstract_emitter';
 import {AbstractJsEmitterVisitor} from './abstract_js_emitter';
 import * as o from './output_ast';
 
-function evalExpression(
-    sourceUrl: string, ctx: EmitterVisitorContext, vars: {[key: string]: any},
-    createSourceMap: boolean): any {
-  let fnBody = `${ctx.toSource()}\n//# sourceURL=${sourceUrl}`;
-  const fnArgNames: string[] = [];
-  const fnArgValues: any[] = [];
-  for (const argName in vars) {
-    fnArgNames.push(argName);
-    fnArgValues.push(vars[argName]);
+/**
+ * A helper class to manage the evaluation of JIT generated code.
+ */
+export class JitEvaluator {
+  static jitStatements(
+      sourceUrl: string, statements: o.Statement[], reflector: CompileReflector,
+      createSourceMaps: boolean): {[key: string]: any} {
+    const converter = new JitEmitterVisitor(reflector);
+    const ctx = EmitterVisitorContext.createRoot();
+    converter.visitAllStatements(statements, ctx);
+    converter.createReturnStmt(ctx);
+    return JitEvaluator.evalJitFunction(sourceUrl, ctx, converter.getArgs(), createSourceMaps);
   }
-  if (createSourceMap) {
-    // using `new Function(...)` generates a header, 1 line of no arguments, 2 lines otherwise
-    // E.g. ```
-    // function anonymous(a,b,c
-    // /**/) { ... }```
-    // We don't want to hard code this fact, so we auto detect it via an empty function first.
-    const emptyFn = new Function(...fnArgNames.concat('return null;')).toString();
-    const headerLines = emptyFn.slice(0, emptyFn.indexOf('return null;')).split('\n').length - 1;
-    fnBody += `\n${ctx.toSourceMapGenerator(sourceUrl, headerLines).toJsComment()}`;
-  }
-  return new Function(...fnArgNames.concat(fnBody))(...fnArgValues);
-}
 
-export function jitStatements(
-    sourceUrl: string, statements: o.Statement[], reflector: CompileReflector,
-    createSourceMaps: boolean): {[key: string]: any} {
-  const converter = new JitEmitterVisitor(reflector);
-  const ctx = EmitterVisitorContext.createRoot();
-  converter.visitAllStatements(statements, ctx);
-  converter.createReturnStmt(ctx);
-  return evalExpression(sourceUrl, ctx, converter.getArgs(), createSourceMaps);
+  static evalJitFunction(
+      sourceUrl: string, ctx: EmitterVisitorContext, vars: {[key: string]: any},
+      createSourceMap: boolean): any {
+    let fnBody = `${ctx.toSource()}\n//# sourceURL=${sourceUrl}`;
+    const fnArgNames: string[] = [];
+    const fnArgValues: any[] = [];
+    for (const argName in vars) {
+      fnArgValues.push(vars[argName]);
+      fnArgNames.push(argName);
+    }
+    if (createSourceMap) {
+      // using `new Function(...)` generates a header, 1 line of no arguments, 2 lines otherwise
+      // E.g. ```
+      // function anonymous(a,b,c
+      // /**/) { ... }```
+      // We don't want to hard code this fact, so we auto detect it via an empty function first.
+      const emptyFn = new Function(...fnArgNames.concat('return null;')).toString();
+      const headerLines = emptyFn.slice(0, emptyFn.indexOf('return null;')).split('\n').length - 1;
+      fnBody += `\n${ctx.toSourceMapGenerator(sourceUrl, headerLines).toJsComment()}`;
+    }
+    const fn = new Function(...fnArgNames.concat(fnBody));
+    return JitEvaluator.callJitFunction(fn, fnArgValues);
+  }
+
+  static callJitFunction(fn: Function, args: any[]) { return fn(...args); }
 }
 
 export class JitEmitterVisitor extends AbstractJsEmitterVisitor {

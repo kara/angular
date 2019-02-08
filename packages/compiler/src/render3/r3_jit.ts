@@ -9,7 +9,7 @@
 import {CompileReflector} from '../compile_reflector';
 import {ConstantPool} from '../constant_pool';
 import * as o from '../output/output_ast';
-import {jitStatements} from '../output/output_jit';
+import {JitEvaluator} from '../output/output_jit';
 
 /**
  * Implementation of `CompileReflector` which resolves references to @angular/core
@@ -69,6 +69,6 @@ export function jitExpression(
     new o.DeclareVarStmt('$def', def, undefined, [o.StmtModifier.Exported]),
   ];
 
-  const res = jitStatements(sourceUrl, statements, new R3JitReflector(context), false);
+  const res = JitEvaluator.jitStatements(sourceUrl, statements, new R3JitReflector(context), true);
   return res['$def'];
 }
