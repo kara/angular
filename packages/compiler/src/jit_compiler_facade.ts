@@ -171,7 +171,7 @@ export class CompilerFacadeImpl implements CompilerFacade {
     ];
 
     const res = this.jitEvaluator.evaluateStatements(
-        sourceUrl, statements, new R3JitReflector(context), true);
+        sourceUrl, statements, new R3JitReflector(context), /* enableSourceMaps */ true);
     return res['$def'];
   }
 }
