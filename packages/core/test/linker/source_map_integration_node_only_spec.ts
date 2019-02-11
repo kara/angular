@@ -227,7 +227,7 @@ describe('jit source mapping', () => {
   onlyInIvy('Generated filenames and stack traces have changed in ivy').describe('(Ivy)', () => {
 
     beforeEach(() => overrideCompilerFacade());
-    afterEach(() => recoverCompilerFacade());
+    afterEach(() => restoreCompilerFacade());
 
     describe('inline templates', () => {
       const ngUrl = 'ng:///MyComp/template.html';
@@ -429,7 +429,7 @@ describe('jit source mapping', () => {
       ng.ɵcompilerFacade = new CompilerFacadeImpl(jitEvaluator);
     }
   }
-  function recoverCompilerFacade() {
+  function restoreCompilerFacade() {
     if (ɵcompilerFacade) {
       const ng: ExportedCompilerFacade = (global as any).ng;
       ng.ɵcompilerFacade = ɵcompilerFacade;
