@@ -6,7 +6,7 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {Component, Directive, ErrorHandler, Inject, Injectable, InjectionToken, NgModule, Optional, Pipe, ɵsetClassMetadata as setClassMetadata, ɵɵdefineComponent as defineComponent, ɵɵtext as text} from '@angular/core';
+import {Component, Directive, ErrorHandler, Inject, Injectable, InjectionToken, NgModule, Optional, Pipe, ValueProvider, ɵsetClassMetadata as setClassMetadata, ɵɵdefineComponent as defineComponent, ɵɵtext as text} from '@angular/core';
 import {TestBed, getTestBed} from '@angular/core/testing/src/test_bed';
 import {By} from '@angular/platform-browser';
 import {expect} from '@angular/platform-browser/testing/src/matchers';
@@ -227,6 +227,27 @@ describe('TestBed', () => {
     const hello = TestBed.createComponent(HelloWorld);
     hello.detectChanges();
     expect(hello.nativeElement).toHaveText('Hello injected World !');
+  });
+
+  it('should override multi providers', () => {
+    const MY_TOKEN = new InjectionToken('MyProvider');
+    class MyProvider {}
+
+    @Component({selector: 'my-comp', template: ``})
+    class MyComp {
+      constructor(@Inject(MY_TOKEN) public myProviders: MyProvider[]) {}
+    }
+
+    TestBed.configureTestingModule({
+      declarations: [MyComp],
+      providers: [{provide: MY_TOKEN, useValue: {value: 'old provider'}, multi: true}]
+    });
+
+    const multiOverride = {provider: MY_TOKEN, useValue: [{value: 'new provider'}], multi: true};
+    TestBed.overrideProvider(MY_TOKEN, multiOverride as any);
+
+    const fixture = TestBed.createComponent(MyComp);
+    expect(fixture.componentInstance.myProviders).toEqual([{value: 'new provider'}]);
   });
 
   it('should resolve components that are extended by other components', () => {

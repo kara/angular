@@ -142,11 +142,17 @@ export class R3TestBedCompiler {
     this.pendingPipes.add(pipe);
   }
 
-  overrideProvider(token: any, provider: {useFactory?: Function, useValue?: any, deps?: any[]}):
-      void {
+  overrideProvider(
+      token: any,
+      provider: {useFactory?: Function, useValue?: any, deps?: any[], multi?: boolean}): void {
     const providerDef = provider.useFactory ?
-        {provide: token, useFactory: provider.useFactory, deps: provider.deps || []} :
-        {provide: token, useValue: provider.useValue};
+        {
+          provide: token,
+          useFactory: provider.useFactory,
+          deps: provider.deps || [],
+          multi: provider.multi
+        } :
+        {provide: token, useValue: provider.useValue, multi: provider.multi};
 
     let injectableDef: InjectableDef<any>|null;
     const isRoot =
@@ -517,8 +523,9 @@ export class R3TestBedCompiler {
     const providers: Provider[] = [
       {provide: NgZone, useValue: ngZone},
       {provide: Compiler, useFactory: () => new R3TestCompiler(this)},
-      ...this.providers,
-      ...this.providerOverrides,
+      // We shouldn't add provider overrides here because they are added later
+      // in applyProviderOverridesToModules
+      ...this.providers
     ];
     const imports = [RootScopeModule, this.additionalModuleTypes, this.imports || []];
 

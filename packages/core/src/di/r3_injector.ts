@@ -323,9 +323,10 @@ export class R3Injector {
       // First check whether it's been defined already.
       let multiRecord = this.records.get(token);
       if (multiRecord) {
-        // It has. Throw a nice error if
+        // It has. Throw a nice error if a token is provided as both a multi-provider
+        // and later as a regular provider (has to be one or the other).
         if (multiRecord.multi === undefined) {
-          throw new Error(`Mixed multi-provider for ${token}.`);
+          throwMixedMultiProviderError(token);
         }
       } else {
         multiRecord = makeRecord(undefined, NOT_YET, true);
@@ -337,7 +338,7 @@ export class R3Injector {
     } else {
       const existing = this.records.get(token);
       if (existing && existing.multi !== undefined) {
-        throw new Error(`Mixed multi-provider for ${stringify(token)}`);
+        throwMixedMultiProviderError(token);
       }
     }
     this.records.set(token, record);
@@ -365,6 +366,10 @@ export class R3Injector {
       return this.injectorDefTypes.has(def.providedIn);
     }
   }
+}
+
+function throwMixedMultiProviderError(token: any): never {
+  throw new Error(`${stringify(token)} has been provided as both a multi-provider and a regular provider.`);
 }
 
 function injectableDefOrInjectorDefFactory(token: Type<any>| InjectionToken<any>): () => any {
