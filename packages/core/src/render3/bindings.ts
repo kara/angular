@@ -9,10 +9,10 @@
 import {devModeEqual} from '../change_detection/change_detection_util';
 import {assertDataInRange, assertLessThan, assertNotSame} from '../util/assert';
 import {throwErrorIfNoChangesMode} from './errors';
-import {LView} from './interfaces/view';
+import {LView, TVIEW} from './interfaces/view';
 import {getCheckNoChangesMode} from './state';
 import {NO_CHANGE} from './tokens';
-import {isDifferent} from './util/misc_utils';
+import {INTERPOLATION_DELIMITER, isDifferent, isPropMetadataString} from './util/misc_utils';
 
 
 
@@ -44,7 +44,8 @@ export function bindingUpdated(lView: LView, bindingIndex: number, value: any): 
       // (before the change detection was run).
       const oldValueToCompare = oldValue !== NO_CHANGE ? oldValue : undefined;
       if (!devModeEqual(oldValueToCompare, value)) {
-        throwErrorIfNoChangesMode(oldValue === NO_CHANGE, oldValueToCompare, value);
+        throwErrorIfNoChangesMode(
+            oldValue === NO_CHANGE, oldValueToCompare, value, lView, bindingIndex);
       }
     }
     lView[bindingIndex] = value;

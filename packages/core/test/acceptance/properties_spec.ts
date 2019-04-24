@@ -10,6 +10,7 @@ import {Component, Input} from '@angular/core';
 import {TestBed} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {expect} from '@angular/platform-browser/testing/src/matchers';
+import {onlyInIvy} from '@angular/private/testing';
 
 describe('elementProperty', () => {
   it('should bind to properties whose names do not correspond to their attribute names', () => {
@@ -60,4 +61,33 @@ describe('elementProperty', () => {
        expect(myCompNode.nativeElement.getAttribute('for')).toBeFalsy();
        expect(myCompNode.componentInstance.for).toBe('hej');
      });
+
+  onlyInIvy('VE throws slightly different error messages')
+      .describe('ExpressionChangedAfterChecked', () => {
+        @Component({selector: 'will-throw', template: ``})
+        class WillThrow {
+          title = 'one';
+          ngAfterViewInit() { this.title = 'two'; }
+        }
+
+        beforeEach(() => { TestBed.configureTestingModule({declarations: [WillThrow]}); });
+
+        it('should include property name when change detection errors are thrown', () => {
+          TestBed.overrideTemplate(WillThrow, `<div [title]="title"></div>`);
+
+          const fixture = TestBed.createComponent(WillThrow);
+          expect(() => fixture.detectChanges())
+              .toThrowError(/Binding context: property binding to 'title'/);
+        });
+
+        it('should include interpolated property name when change detection errors are thrown',
+           () => {
+             TestBed.overrideTemplate(WillThrow, `<div title="my title is {{ title }}!"></div>`);
+
+             const fixture = TestBed.createComponent(WillThrow);
+             expect(() => fixture.detectChanges())
+                 .toThrowError(/Binding context: property binding to 'title'/);
+           });
+
+      });
 });
