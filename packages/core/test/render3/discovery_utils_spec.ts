@@ -5,8 +5,7 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
  */
-import {StaticInjector} from '../../src/di/injector';
-import {createInjector} from '../../src/di/r3_injector';
+import {StaticInjector, createInjector} from '../../src/di/injector';
 import {AttributeMarker, RenderFlags, getHostElement, ɵɵProvidersFeature, ɵɵdefineComponent, ɵɵdefineDirective, ɵɵelementContainerEnd, ɵɵelementContainerStart, ɵɵi18n, ɵɵi18nApply, ɵɵi18nExp} from '../../src/render3/index';
 import {markDirty, ɵɵbind, ɵɵelement, ɵɵelementEnd, ɵɵelementProperty, ɵɵelementStart, ɵɵelementStyling, ɵɵelementStylingApply, ɵɵlistener, ɵɵtemplate, ɵɵtext, ɵɵtextBinding} from '../../src/render3/instructions/all';
 import {getComponent, getContext, getDirectives, getInjectionTokens, getInjector, getListeners, getLocalRefs, getRootComponents, getViewComponent, loadLContext} from '../../src/render3/util/discovery_utils';

@@ -8,7 +8,7 @@
 
 import {Component as _Component, ComponentFactoryResolver, ElementRef, InjectFlags, Injectable as _Injectable, InjectionToken, InjectorType, Provider, RendererFactory2, ViewContainerRef, ɵNgModuleDef as NgModuleDef, ɵɵdefineInjectable, ɵɵdefineInjector, ɵɵinject} from '../../src/core';
 import {forwardRef} from '../../src/di/forward_ref';
-import {createInjector} from '../../src/di/r3_injector';
+import {createInjector} from '../../src/di/injector';
 import {injectComponentFactoryResolver, ɵɵProvidersFeature, ɵɵdefineComponent, ɵɵdefineDirective, ɵɵdirectiveInject} from '../../src/render3/index';
 import {ɵɵbind, ɵɵcontainer, ɵɵcontainerRefreshEnd, ɵɵcontainerRefreshStart, ɵɵelement, ɵɵelementEnd, ɵɵelementStart, ɵɵembeddedViewEnd, ɵɵembeddedViewStart, ɵɵinterpolation1, ɵɵtext, ɵɵtextBinding} from '../../src/render3/instructions/all';
 import {RenderFlags} from '../../src/render3/interfaces/definition';

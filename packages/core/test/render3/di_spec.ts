@@ -10,7 +10,7 @@ import {Attribute, ChangeDetectorRef, ElementRef, Host, INJECTOR, Inject, Inject
 import {createLView, createNodeAtIndex, createTView} from '@angular/core/src/render3/instructions/shared';
 import {ComponentType, RenderFlags} from '@angular/core/src/render3/interfaces/definition';
 
-import {createInjector} from '../../src/di/r3_injector';
+import {createInjector} from '../../src/di/injector';
 import {ɵɵdefineComponent} from '../../src/render3/definition';
 import {bloomAdd, bloomHasToken, bloomHashBitOrFactory as bloomHash, getOrCreateNodeInjectorForNode} from '../../src/render3/di';
 import {ɵɵProvidersFeature, ɵɵallocHostVars, ɵɵbind, ɵɵcontainer, ɵɵcontainerRefreshEnd, ɵɵcontainerRefreshStart, ɵɵdefineDirective, ɵɵdirectiveInject, ɵɵelement, ɵɵelementContainerEnd, ɵɵelementContainerStart, ɵɵelementEnd, ɵɵelementProperty, ɵɵelementStart, ɵɵembeddedViewEnd, ɵɵembeddedViewStart, ɵɵinjectAttribute, ɵɵinterpolation2, ɵɵload, ɵɵprojection, ɵɵprojectionDef, ɵɵreference, ɵɵtemplate, ɵɵtemplateRefExtractor, ɵɵtext, ɵɵtextBinding} from '../../src/render3/index';

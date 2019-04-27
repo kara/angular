@@ -289,6 +289,6 @@ export {
   publishDefaultGlobalUtils as ɵpublishDefaultGlobalUtils
 } from './render3/util/global_utils';
 
-export {createInjector as ɵcreateInjector} from './di/r3_injector';
+export {createInjector as ɵcreateInjector, INJECTOR_IMPL__POST_R3__ as ɵINJECTOR_IMPL__POST_R3__} from './di/injector';
 
 // clang-format on

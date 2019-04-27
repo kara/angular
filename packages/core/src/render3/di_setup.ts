@@ -9,7 +9,7 @@
 
 import {resolveForwardRef} from '../di/forward_ref';
 import {ClassProvider, Provider} from '../di/interface/provider';
-import {isClassProvider, isTypeProvider, providerToFactory} from '../di/r3_injector';
+import {isClassProvider, isTypeProvider, providerToFactory} from '../di/injector';
 
 import {diPublicInInjector, getNodeInjectable, getOrCreateNodeInjectorForNode} from './di';
 import {ɵɵdirectiveInject} from './instructions/all';

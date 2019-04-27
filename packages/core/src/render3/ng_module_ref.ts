@@ -9,7 +9,7 @@
 import {INJECTOR, Injector} from '../di/injector';
 import {InjectFlags} from '../di/interface/injector';
 import {StaticProvider} from '../di/interface/provider';
-import {R3Injector, createInjector} from '../di/r3_injector';
+import {R3Injector, createInjector} from '../di/injector';
 import {Type} from '../interface/type';
 import {ComponentFactoryResolver as viewEngine_ComponentFactoryResolver} from '../linker/component_factory_resolver';
 import {InternalNgModuleRef, NgModuleFactory as viewEngine_NgModuleFactory, NgModuleRef as viewEngine_NgModuleRef} from '../linker/ng_module_factory';

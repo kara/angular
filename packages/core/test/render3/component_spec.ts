@@ -7,7 +7,7 @@
  */
 
 import {InjectionToken, ViewEncapsulation, ɵɵdefineInjectable, ɵɵdefineInjector} from '../../src/core';
-import {createInjector} from '../../src/di/r3_injector';
+import {createInjector} from '../../src/di/injector';
 import {AttributeMarker, ComponentFactory, LifecycleHooksFeature, getRenderedText, markDirty, ɵɵProvidersFeature, ɵɵdefineComponent, ɵɵdirectiveInject, ɵɵtemplate} from '../../src/render3/index';
 import {tick, ɵɵbind, ɵɵcontainer, ɵɵcontainerRefreshEnd, ɵɵcontainerRefreshStart, ɵɵelement, ɵɵelementEnd, ɵɵelementProperty, ɵɵelementStart, ɵɵembeddedViewEnd, ɵɵembeddedViewStart, ɵɵnextContext, ɵɵtext, ɵɵtextBinding} from '../../src/render3/instructions/all';
 import {ComponentDef, RenderFlags} from '../../src/render3/interfaces/definition';

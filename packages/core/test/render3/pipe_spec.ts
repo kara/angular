@@ -9,7 +9,7 @@
 import {Directive as _Directive, InjectionToken, OnChanges, OnDestroy, Pipe as _Pipe, PipeTransform, WrappedValue, ɵNgModuleDef as NgModuleDef, ɵɵdefineComponent as defineComponent, ɵɵdefineInjectable, ɵɵdefineInjector, ɵɵdirectiveInject as directiveInject} from '@angular/core';
 import {expect} from '@angular/platform-browser/testing/src/matchers';
 
-import {createInjector} from '../../src/di/r3_injector';
+import {createInjector} from '../../src/di/injector';
 import {ɵɵdefineDirective, ɵɵdefinePipe} from '../../src/render3/definition';
 import {ɵɵbind, ɵɵcontainer, ɵɵcontainerRefreshEnd, ɵɵcontainerRefreshStart, ɵɵelementEnd, ɵɵelementProperty, ɵɵelementStart, ɵɵembeddedViewEnd, ɵɵembeddedViewStart, ɵɵinterpolation1, ɵɵload, ɵɵtext, ɵɵtextBinding} from '../../src/render3/instructions/all';
 import {RenderFlags} from '../../src/render3/interfaces/definition';

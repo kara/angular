@@ -7,7 +7,7 @@
  */
 
 import {ChangeDetectorRef, Component as _Component, ComponentFactoryResolver, ComponentRef, ɵɵdefineInjector, ElementRef, EmbeddedViewRef, NgModuleRef, Pipe, PipeTransform, QueryList, RendererFactory2, TemplateRef, ViewContainerRef, ViewRef, ɵAPP_ROOT as APP_ROOT, ɵNgModuleDef as NgModuleDef,} from '../../src/core';
-import {createInjector} from '../../src/di/r3_injector';
+import {createInjector} from '../../src/di/injector';
 import {ViewEncapsulation} from '../../src/metadata';
 import {AttributeMarker, ɵɵdefineComponent, ɵɵdefineDirective, ɵɵdefinePipe, injectComponentFactoryResolver, ɵɵlistener, ɵɵloadViewQuery, ɵɵNgOnChangesFeature, ɵɵqueryRefresh, ɵɵviewQuery,} from '../../src/render3/index';
 
