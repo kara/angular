@@ -24,7 +24,7 @@ import {InternalViewRef, ViewRef} from './linker/view_ref';
 import {isComponentResourceResolutionQueueEmpty, resolveComponentResources} from './metadata/resource_loading';
 import {WtfScopeFn, wtfCreateScope, wtfLeave} from './profile/profile';
 import {assertNgModuleType} from './render3/assert';
-import {ComponentFactory as R3ComponentFactory} from './render3/component_ref';
+import {ComponentFactory as R3ComponentFactory, RootComponentFactoryResolver} from './render3/component_ref';
 import {NgModuleFactory as R3NgModuleFactory} from './render3/ng_module_ref';
 import {Testability, TestabilityRegistry} from './testability/testability';
 import {isDevMode} from './util/is_dev_mode';

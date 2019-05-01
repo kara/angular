@@ -37,16 +37,15 @@ import {getTNode} from './util/view_utils';
 import {createElementRef} from './view_engine_compatibility';
 import {RootViewRef, ViewRef} from './view_ref';
 
-export class ComponentFactoryResolver extends viewEngine_ComponentFactoryResolver {
+export class RootComponentFactoryResolver extends viewEngine_ComponentFactoryResolver {
   /**
    * @param ngModule The NgModuleRef to which all resolved factories are bound.
    */
-  constructor(private ngModule?: viewEngine_NgModuleRef<any>) { super(); }
+  constructor(protected ngModule?: viewEngine_NgModuleRef<any>) { super(); }
 
   resolveComponentFactory<T>(component: Type<T>): viewEngine_ComponentFactory<T> {
     ngDevMode && assertComponentType(component);
-    const componentDef = getComponentDef(component) !;
-    return new ComponentFactory(componentDef, this.ngModule);
+    return new RootComponentFactory(getComponentDef(component) !, this.ngModule);
   }
 }
 
@@ -59,6 +58,14 @@ function toRefArray(map: {[key: string]: string}): {propName: string; templateNa
     }
   }
   return array;
+}
+
+export class ComponentFactoryResolver extends RootComponentFactoryResolver {
+
+  resolveComponentFactory<T>(component: Type<T>): viewEngine_ComponentFactory<T> {
+    ngDevMode && assertComponentType(component);
+    return new ComponentFactory(getComponentDef(component) !, this.ngModule);
+  }
 }
 
 /**
@@ -100,7 +107,7 @@ function createChainedInjector(rootViewInjector: Injector, moduleInjector: Injec
 /**
  * Render3 implementation of {@link viewEngine_ComponentFactory}.
  */
-export class ComponentFactory<T> extends viewEngine_ComponentFactory<T> {
+export class RootComponentFactory<T> extends viewEngine_ComponentFactory<T> {
   selector: string;
   componentType: Type<any>;
   ngContentSelectors: string[];
@@ -206,15 +213,28 @@ export class ComponentFactory<T> extends viewEngine_ComponentFactory<T> {
       leaveView(oldLView);
     }
 
+    const componentRefInjector = this._componentRefInjector(tElementNode, rootLView) || rootViewInjector;
     const componentRef = new ComponentRef(
         this.componentType, component,
-        createElementRef(viewEngine_ElementRef, tElementNode, rootLView), rootLView, tElementNode);
+        createElementRef(viewEngine_ElementRef, tElementNode, rootLView), rootLView, componentRefInjector);
 
     if (isInternalRootView) {
       // The host element of the internal root view is attached to the component's host view node
       componentRef.hostView._tViewNode !.child = tElementNode;
     }
     return componentRef;
+  }
+
+  protected _componentRefInjector(tElementNode: TElementNode|TContainerNode|TElementContainerNode,
+                                  rootLView: LView): Injector|null {
+    return null;
+  }
+}
+
+export class ComponentFactory<T> extends RootComponentFactory<T> {
+  protected _componentRefInjector(tElementNode: TElementNode|TContainerNode|TElementContainerNode,
+                                  rootLView: LView): Injector|null {
+    return new NodeInjector(tElementNode, rootLView);
   }
 }
 
@@ -248,8 +268,7 @@ export class ComponentRef<T> extends viewEngine_ComponentRef<T> {
 
   constructor(
       componentType: Type<T>, instance: T, public location: viewEngine_ElementRef,
-      private _rootLView: LView,
-      private _tNode: TElementNode|TContainerNode|TElementContainerNode) {
+      private _rootLView: LView, private _injector: Injector) {
     super();
     this.instance = instance;
     this.hostView = this.changeDetectorRef = new RootViewRef<T>(_rootLView);
@@ -257,7 +276,7 @@ export class ComponentRef<T> extends viewEngine_ComponentRef<T> {
     this.componentType = componentType;
   }
 
-  get injector(): Injector { return new NodeInjector(this._tNode, this._rootLView); }
+  get injector(): Injector { return this._injector; }
 
   destroy(): void {
     ngDevMode && assertDefined(this.destroyCbs, 'NgModule already destroyed');
