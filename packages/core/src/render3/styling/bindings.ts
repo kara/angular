@@ -849,7 +849,10 @@ export const setStyle: ApplyStylingFn =
 export const setClass: ApplyStylingFn =
     (renderer: Renderer3 | null, native: RElement, className: string, value: any) => {
       if (renderer !== null && className !== '') {
-        if (value) {
+        // Due to code sharing in applyStylingValue, the value might have been
+        // sanitized into a string. In that case, `false` becomes `"false"`, so
+        // we need to make sure that the class isn't added erroneously.
+        if (value && value !== 'false') {
           ngDevMode && ngDevMode.rendererAddClass++;
           if (isProceduralRenderer(renderer)) {
             renderer.addClass(native, className);

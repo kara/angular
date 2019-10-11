@@ -5,6 +5,7 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
  */
+import {CommonModule} from '@angular/common';
 import {Component, ComponentFactoryResolver, ComponentRef, Directive, ElementRef, HostBinding, Input, NgModule, Renderer2, ViewChild, ViewContainerRef} from '@angular/core';
 import {getDebugNode} from '@angular/core/src/render3/util/discovery_utils';
 import {ngDevModeResetPerfCounters} from '@angular/core/src/util/ng_dev_mode';
@@ -177,6 +178,31 @@ describe('styling', () => {
     fixture.detectChanges();
 
     expect(fixture.componentInstance.div.nativeElement.style.opacity).toBe('0');
+  });
+
+  it('should not erroneously add classes to ngClass when value is "false"', () => {
+    @Component({
+      template: `
+        <div #firstDiv class="container" [ngClass]="{disabled: isDisabled}"></div>
+        <div [style.background]="background" [style.border]="border"></div>
+      `
+    })
+    class App {
+      @ViewChild('firstDiv') firstDiv !: ElementRef<HTMLElement>;
+      border = '1px solid red';
+      background = 'white';
+      isDisabled = false;
+    }
+
+    TestBed.configureTestingModule({declarations: [App], imports: [CommonModule]});
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    expect(fixture.componentInstance.firstDiv.nativeElement.classList.contains('disabled'))
+        .toBe(false);
+
+    fixture.detectChanges();
+    expect(fixture.componentInstance.firstDiv.nativeElement.classList.contains('disabled'))
+        .toBe(false);
   });
 
   it('should be able to bind a SafeValue to backgroundImage', () => {
